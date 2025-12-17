@@ -1,0 +1,22 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container text-center">
+        <h2 class="fw-bold mb-3">Thank You!</h2>
+        <p class="mb-2">
+            Your order has been placed successfully.
+        </p>
+        <p class="mb-1">
+            <strong>Order ID:</strong> #{{ order.id }}
+        </p>
+        <p class="text-muted">
+            Our team will contact you soon for confirmation and delivery details.
+        </p>
+
+        <a href="{% url 'store:shop' %}" class="btn btn-primary mt-3">
+            Continue Shopping
+        </a>
+    </div>
+</section>
+{% endblock %}

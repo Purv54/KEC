@@ -1,0 +1,193 @@
+/* Hero section styles */
+.hero-section {
+    position: relative;
+    min-height: 80vh;
+    background-image: url("../images/Hero_motor.jpeg"); /* your motor image */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: #fff;
+}
+
+.hero-section .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);  /* darkens the image */
+}
+
+.hero-section .hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+/* ✅ Glassmorphism card in hero */
+.hero-box {
+    max-width: 700px;
+    width: 100%;
+    padding: 30px 25px;
+    border-radius: 18px;
+    background: rgba(0, 0, 0, 0.35);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);       /* main blur effect */
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+/* Search bar styling inside hero */
+.hero-search {
+    max-width: 600px;
+}
+
+.hero-search-input {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #fff;
+}
+
+.hero-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.hero-search-input:focus {
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    box-shadow: none;
+    border-color: #0d6efd;
+}
+
+.hero-search-btn {
+    padding-inline: 24px;
+    font-weight: 600;
+}
+
+.navbar-brand img {
+    max-height: 60px;   /* ✅ bigger than before */
+    width: auto;
+    object-fit: contain;
+}
+
+
+
+/* Category cards */
+.category-card {
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.category-image {
+    height: 180px;
+    object-fit: cover;
+}
+
+.placeholder-image {
+    height: 180px;
+    background: #dee2e6;
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+/* Product cards (shop page) */
+.product-card {
+    border-radius: 12px;
+    transition: 0.2s;
+}
+
+.product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.category-overlay-card {
+    position: relative;
+    height: 220px;
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.category-overlay-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+}
+
+.category-bg-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(1.8px) brightness(0.7);
+    transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.category-overlay-card:hover .category-bg-img {
+    filter: blur(0.8px) brightness(0.85);
+    transform: scale(1.05);
+}
+
+.category-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.25),
+        rgba(0, 0, 0, 0.65)
+    );
+}
+
+.category-title {
+    color: #ffffff;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 10px 16px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    backdrop-filter: blur(4px);
+}
+
+/* Shop page category links */
+.shop-category-list a {
+    text-decoration: none;
+    color: #333;
+    padding: 6px 8px;
+    border-radius: 6px;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.shop-category-list a:hover {
+    background: #f1f3f5;
+}
+
+.shop-category-list a.active-link {
+    background: #0d6efd;
+    color: #fff;
+}
+
+/* Product images on shop page */
+.product-img {
+    height: 180px;
+    object-fit: cover;
+}
+
+/* Product card hover effect (if not already added) */
+.product-card {
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}

@@ -1,0 +1,90 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<section class="py-4">
+    <div class="container">
+        <h2 class="fw-bold mb-3">Your Cart</h2>
+
+        {% if items %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Price (₹)</th>
+                            <th>Quantity</th>
+                            <th>Subtotal (₹)</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.product.name }}</strong><br>
+                                    <small class="text-muted">
+                                        {% if item.product.model_number %}
+                                            Model: {{ item.product.model_number }}
+                                        {% endif %}
+                                    </small>
+                                </td>
+                                <td>{{ item.product.price }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'store:update_cart' item.product.id %}" class="d-flex align-items-center">
+                                        {% csrf_token %}
+                                        <input type="number"
+                                            name="quantity"
+                                            min="1"
+                                            max="{{ item.product.stock }}"
+                                            value="{{ item.quantity }}"
+                                            class="form-control form-control-sm"
+                                            style="width: 80px;">
+                                        <button type="submit" class="btn btn-sm btn-outline-primary ms-2">
+                                            Update
+                                        </button>
+                                    </form>
+                                </td>
+
+                                <td>{{ item.subtotal }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'store:remove_from_cart' item.product.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            Remove
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">Total:</td>
+                            <td class="fw-bold">{{ total }}</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between mt-3">
+                <form method="post" action="{% url 'store:clear_cart' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-secondary">
+                        Clear Cart
+                    </button>
+                </form>
+
+                <!-- Checkout to be implemented later -->
+                <a href="{% url 'store:checkout' %}" class="btn btn-success">
+                    Proceed to Checkout
+                </a>
+
+            </div>
+        {% else %}
+            <p>Your cart is empty.</p>
+            <a href="{% url 'store:shop' %}" class="btn btn-primary mt-2">
+                Go to Shop
+            </a>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

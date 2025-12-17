@@ -1,0 +1,184 @@
+{% extends 'store/base.html' %}
+{% load static %}
+{% block content %}
+<section class="py-4">
+  <div class="container">
+    <h2 class="fw-bold mb-3">Checkout</h2>
+
+    {# show messages so we can see errors/success on the page #}
+    {% if messages %}
+      <div class="mb-3">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="row g-4">
+      <!-- Left: Customer details form -->
+      <div class="col-md-7">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h5 class="mb-3">Customer Details</h5>
+
+            <!-- IMPORTANT: radios + fields must be INSIDE this form -->
+            <form method="post" id="checkout-form" novalidate>
+              {% csrf_token %}
+
+              <!-- Saved addresses (for logged-in users) -->
+              {% if user_addresses %}
+                <div class="mb-3">
+                  <label class="form-label">Choose saved address</label>
+                  <div class="list-group">
+                    {% for addr in user_addresses %}
+                      <label class="list-group-item d-flex justify-content-between align-items-start">
+                        <div>
+                          <strong>{{ addr.label|default:"Address" }}</strong>
+                          {% if addr.is_default %}<span class="badge bg-success ms-2">Default</span>{% endif %}
+                          <div class="small text-muted">{{ addr.full_name }} • {{ addr.phone }}</div>
+                          <div class="small">{{ addr.address_line }}</div>
+                          <div class="small">{{ addr.city }} - {{ addr.pincode }}</div>
+                        </div>
+
+                        <div class="ms-3 text-end">
+                          <!-- radio is INSIDE the form -->
+                          <input type="radio"
+                                 name="address_id"
+                                 value="{{ addr.id }}"
+                                 class="form-check-input choose-address"
+                                 {% if addr.is_default %}checked{% endif %}>
+                        </div>
+                      </label>
+                    {% endfor %}
+                    <label class="list-group-item">
+                      <input type="radio" name="address_id" value="" class="form-check-input choose-address"> Use a different address below
+                    </label>
+                  </div>
+                </div>
+              {% endif %}
+
+              <!-- Regular checkout form (for guest or if "different address" chosen) -->
+              <div id="checkout-form-fields">
+                <div class="mb-3">
+                  <label class="form-label">Full Name</label>
+                  {{ form.full_name }}
+                  {{ form.full_name.errors }}
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Email</label>
+                  {{ form.email }}
+                  {{ form.email.errors }}
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Phone</label>
+                  {{ form.phone }}
+                  {{ form.phone.errors }}
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Address</label>
+                  {# if your form field is named address or address_line, use the correct name here #}
+                  {{ form.address }}
+                  {{ form.address.errors }}
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">City</label>
+                    {{ form.city }}
+                    {{ form.city.errors }}
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Pincode</label>
+                    {{ form.pincode }}
+                    {{ form.pincode.errors }}
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Notes (optional)</label>
+                  {{ form.notes }}
+                  {{ form.notes.errors }}
+                </div>
+              </div>
+
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success" id="place-order-btn">Place Order</button>
+                <a href="{% url 'store:cart_detail' %}" class="btn btn-outline-secondary">Back to Cart</a>
+              </div>
+            </form>
+            <!-- end form -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Order summary -->
+      <div class="col-md-5">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h5 class="mb-3">Order Summary</h5>
+
+            {% for item in items %}
+              <div class="d-flex justify-content-between mb-2">
+                <div>
+                  <strong>{{ item.product.name }}</strong><br>
+                  <small class="text-muted">Qty: {{ item.quantity }}</small>
+                </div>
+                <div>
+                  ₹ {{ item.subtotal }}
+                </div>
+              </div>
+            {% endfor %}
+
+            <hr>
+            <div class="d-flex justify-content-between fw-bold">
+              <span>Total</span>
+              <span>₹ {{ total }}</span>
+            </div>
+            <p class="text-muted mt-2 mb-0">Payment Method: Cash on Delivery / Offline (can be extended later).</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const radios = document.querySelectorAll('.choose-address');
+  const formFields = document.getElementById('checkout-form-fields');
+
+  function updateFields() {
+    let selected = document.querySelector('.choose-address:checked');
+    if (!selected) {
+      formFields.style.display = 'block';
+      return;
+    }
+    if (selected.value && selected.value.trim() !== '') {
+      formFields.style.display = 'none';
+    } else {
+      formFields.style.display = 'block';
+    }
+  }
+
+  if (radios.length) {
+    radios.forEach(r => r.addEventListener('change', updateFields));
+    updateFields();
+  }
+
+  // Safety: log a message if form submission is prevented by JS errors
+  const form = document.getElementById('checkout-form');
+  form.addEventListener('submit', function (e) {
+    // allow normal submit; this listener exists to surface JS errors in console
+    try {
+      // no-op
+    } catch (err) {
+      console.error("Error during checkout submit:", err);
+    }
+  });
+});
+</script>
+{% endblock %}

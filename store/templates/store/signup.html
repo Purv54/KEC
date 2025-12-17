@@ -1,0 +1,23 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<div class="container py-5" style="max-width:720px;">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h3 class="mb-3">Create an account</h3>
+      <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label">{{ field.label }}</label>
+            {{ field }}
+            <div class="text-danger">{{ field.errors }}</div>
+          </div>
+        {% endfor %}
+        <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
+        <button class="btn btn-primary" type="submit">Sign up</button>
+        <a class="btn btn-outline-secondary ms-2" href="{% url 'store:login' %}">Have an account? Login</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

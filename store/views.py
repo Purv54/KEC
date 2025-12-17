@@ -1,0 +1,438 @@
+from django.shortcuts import render,get_object_or_404,redirect
+from django.contrib import messages
+from .models import Category, Product, Order, OrderItem,Address
+from django.db.models import Q
+from django.views.decorators.http import require_POST
+from .forms import CheckoutForm,AddressForm,SignUpForm,ProfileForm
+
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+import logging
+logger = logging.getLogger(__name__)
+# Create your views here.
+
+def home(request):
+    categories = Category.objects.all()
+    return render(request, 'store/home.html', 
+                 {'categories': categories,})
+
+
+def shop(request):
+    categories = Category.objects.all()
+    products = Product.objects.filter(is_available=True)
+
+    # Category filter (?category=slug)
+    category_slug = request.GET.get('category')
+    if category_slug:
+        products = products.filter(category__slug=category_slug)
+
+    # Search filter (?q=...)
+    query = request.GET.get('q')
+    if query:
+        products = products.filter(
+            Q(name__icontains=query) |
+            Q(model_number__icontains=query) |
+            Q(description__icontains=query)
+        )
+
+    context = {
+        'categories': categories,
+        'products': products,
+        'selected_category': category_slug,
+        'search_query': query,
+    }
+    return render(request, 'store/shop.html', context)
+
+def product_detail(request, slug):
+    product = get_object_or_404(Product, slug=slug, is_available=True)
+    return render(request, 'store/product_detail.html', {
+        'product': product,
+    })
+
+# ---------- CART HELPERS ----------
+
+def _get_cart(request):
+    """Return cart dict from session: {product_id: quantity}"""
+    return request.session.get('cart', {})
+
+
+def _save_cart(request, cart):
+    """Save cart dict back to session"""
+    request.session['cart'] = cart
+    request.session.modified = True
+
+
+# ---------- CART VIEWS ----------
+
+@require_POST
+def add_to_cart(request, product_id):
+    product = get_object_or_404(Product, id=product_id, is_available=True)
+
+    cart = _get_cart(request)
+    quantity = int(request.POST.get('quantity', 1))
+    if quantity < 1:
+        quantity = 1
+
+    pid = str(product_id)
+    current_qty = cart.get(pid, 0)
+    new_qty = current_qty + quantity
+
+    # Optional: respect stock
+    if product.stock and new_qty > product.stock:
+        new_qty = product.stock
+
+    cart[pid] = new_qty
+    _save_cart(request, cart)
+
+    messages.success(request, f"Added {product.name} (x{quantity}) to cart.")
+
+    # redirect back to previous page if 'next' is given
+    next_url = request.POST.get('next')
+    if next_url:
+        return redirect(next_url)
+    return redirect('store:cart_detail')
+
+
+def cart_detail(request):
+    cart = _get_cart(request)
+    items = []
+    total = 0
+
+    for pid, qty in cart.items():
+        product = get_object_or_404(Product, id=pid)
+        subtotal = product.price * qty
+        total += subtotal
+        items.append({
+            'product': product,
+            'quantity': qty,
+            'subtotal': subtotal,
+        })
+
+    return render(request, 'store/cart.html', {
+        'items': items,
+        'total': total,
+    })
+
+
+@require_POST
+def remove_from_cart(request, product_id):
+    cart = _get_cart(request)
+    pid = str(product_id)
+    if pid in cart:
+        del cart[pid]
+        _save_cart(request, cart)
+        messages.info(request, "Item removed from cart.")
+    return redirect('store:cart_detail')
+
+
+@require_POST
+def clear_cart(request):
+    request.session['cart'] = {}
+    request.session.modified = True
+    messages.info(request, "Cart cleared.")
+    return redirect('store:cart_detail')
+
+@require_POST
+def update_cart(request, product_id):
+    cart = _get_cart(request)
+    pid = str(product_id)
+
+    if pid not in cart:
+        return redirect('store:cart_detail')
+
+    product = get_object_or_404(Product, id=product_id)
+
+    try:
+        quantity = int(request.POST.get('quantity', 1))
+    except ValueError:
+        quantity = 1
+
+    if quantity < 1:
+        # if user sets 0 or less, remove the item
+        del cart[pid]
+        messages.info(request, f"{product.name} removed from cart.")
+    else:
+        # optional: cap by stock
+        if product.stock and quantity > product.stock:
+            quantity = product.stock
+            messages.warning(request, f"Quantity adjusted to available stock ({product.stock}).")
+
+        cart[pid] = quantity
+        messages.success(request, f"Updated {product.name} quantity to {quantity}.")
+
+    _save_cart(request, cart)
+    return redirect('store:cart_detail')
+
+def checkout(request):
+    cart = _get_cart(request)
+    if not cart:
+        messages.error(request, "Your cart is empty. Add some products before checkout.")
+        return redirect('store:shop')
+
+    # Build items + total for summary
+    items = []
+    total = 0
+    for pid, qty in cart.items():
+        product = get_object_or_404(Product, id=pid)
+        subtotal = product.price * qty
+        total += subtotal
+        items.append({
+            'product': product,
+            'quantity': qty,
+            'subtotal': subtotal,
+        })
+
+    # Load user's saved addresses if authenticated
+    user_addresses = None
+    if request.user.is_authenticated:
+        user_addresses = request.user.addresses.all()
+
+    if request.method == 'POST':
+        # first check if a saved address id was posted
+        logger.debug("Checkout POST data: %s", request.POST.dict())
+        address_id = request.POST.get('address_id')
+        form = CheckoutForm(request.POST)
+
+        # If user selected a saved address and it's valid, we'll use it
+        selected_address = None
+        if address_id and request.user.is_authenticated:
+            try:
+                selected_address = Address.objects.get(id=address_id, user=request.user)
+            except Address.DoesNotExist:
+                selected_address = None
+
+        if selected_address:
+            # create order using selected_address values
+            with transaction.atomic():
+                order = Order.objects.create(
+                    user=request.user if request.user.is_authenticated else None,
+                    full_name=selected_address.full_name,
+                    email=request.user.email if request.user.is_authenticated and request.user.email else '',
+                    phone=selected_address.phone,
+                    address=selected_address.address_line,
+                    city=selected_address.city,
+                    pincode=selected_address.pincode,
+                    notes=''  # you can add notes from POST if you included field in form
+                )
+
+                # create order items
+                for item in items:
+                    OrderItem.objects.create(
+                        order=order,
+                        product=item['product'],
+                        quantity=item['quantity'],
+                        price=item['product'].price
+                    )
+                    # reduce stock
+                    p = item['product']
+                    if p.stock is not None:
+                        p.stock = max(0, p.stock - item['quantity'])
+                        p.save()
+
+                # clear cart
+                request.session['cart'] = {}
+                request.session.modified = True
+
+                messages.success(request, f"Your order #{order.id} has been placed successfully!")
+                return redirect('store:order_success', order_id=order.id)
+
+        else:
+            # No saved address used — validate normal checkout form
+            if form.is_valid():
+                with transaction.atomic():
+                    order = form.save(commit=False)
+                    if request.user.is_authenticated:
+                        order.user = request.user
+                        # if email empty in form but user has email, you might want to set it
+                        if not order.email and request.user.email:
+                            order.email = request.user.email
+                    order.save()
+
+                    for item in items:
+                        OrderItem.objects.create(
+                            order=order,
+                            product=item['product'],
+                            quantity=item['quantity'],
+                            price=item['product'].price
+                        )
+                        # reduce stock
+                        p = item['product']
+                        if p.stock is not None:
+                            p.stock = max(0, p.stock - item['quantity'])
+                            p.save()
+
+                    # optionally: if user checked "save address" on form, create Address object here
+                    # clear cart
+                    request.session['cart'] = {}
+                    request.session.modified = True
+
+                    messages.success(request, f"Your order #{order.id} has been placed successfully!")
+                    return redirect('store:order_success', order_id=order.id)
+            else:
+                messages.error(request, "Please correct errors in the form.")
+    else:
+        form = CheckoutForm()
+
+    return render(request, 'store/checkout.html', {
+        'form': form,
+        'items': items,
+        'total': total,
+        'user_addresses': user_addresses,
+    })
+
+def order_success(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    return render(request, 'store/order_success.html', {
+        'order': order,
+    })
+
+
+def signup_view(request):
+    if request.user.is_authenticated:
+        return redirect('store:shop')
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            # optional: set email lowercased
+            if user.email:
+                user.email = user.email.lower()
+                user.save()
+            # Auto-login after signup
+            login(request, user)
+            messages.success(request, f"Welcome, {user.username}! Your account was created.")
+            next_url = request.GET.get('next') or request.POST.get('next') or 'store:shop'
+            return redirect(next_url)
+    else:
+        form = SignUpForm()
+    return render(request, 'store/signup.html', {'form': form})
+
+
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('store:shop')
+
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        next_url = request.POST.get('next') or request.GET.get('next') or None
+
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            messages.success(request, f"Welcome back, {user.username}!")
+            return redirect(next_url or 'store:shop')
+        else:
+            messages.error(request, "Invalid username or password.")
+            return redirect('store:login')
+    else:
+        next_url = request.GET.get('next', '')
+        return render(request, 'store/login.html', {'next': next_url})
+
+
+@login_required
+def logout_view(request):
+    logout(request)
+    messages.info(request, "You have been logged out.")
+    return redirect('store:home')
+
+@login_required
+def profile_view(request):
+    user = request.user
+    # user info
+    email = user.email
+    # fetch addresses and orders
+    addresses = user.addresses.all()
+    orders = Order.objects.filter(user=user).order_by('-created_at')
+
+    add_form = AddressForm()
+
+    context = {
+        'email': email,
+        'addresses': addresses,
+        'orders': orders,
+        'add_form': add_form,
+    }
+    return render(request, 'store/profile.html', context)
+
+
+@login_required
+def add_address(request):
+    if request.method == 'POST':
+        form = AddressForm(request.POST)
+        if form.is_valid():
+            addr = form.save(commit=False)
+            addr.user = request.user
+            # if setting default, unset others
+            if addr.is_default:
+                Address.objects.filter(user=request.user, is_default=True).update(is_default=False)
+            addr.save()
+            messages.success(request, "Address added.")
+        else:
+            # capture errors to show on the profile page
+            for field, errs in form.errors.items():
+                messages.error(request, f"{field}: {', '.join(errs)}")
+    return redirect('store:profile')
+
+@login_required
+def edit_profile(request):
+    user = request.user
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Profile updated successfully.")
+            return redirect('store:profile')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = ProfileForm(instance=user)
+
+    return render(request, 'store/edit_profile.html', {'form': form})
+
+
+@login_required
+def edit_address(request, address_id):
+    # ensure the address belongs to this user
+    address = get_object_or_404(Address, id=address_id, user=request.user)
+
+    if request.method == 'POST':
+        form = AddressForm(request.POST, instance=address)
+        if form.is_valid():
+            addr = form.save(commit=False)
+            addr.user = request.user
+            if addr.is_default:
+                # unset other defaults
+                Address.objects.filter(user=request.user, is_default=True).exclude(id=addr.id).update(is_default=False)
+            addr.save()
+            messages.success(request, "Address updated successfully.")
+            return redirect('store:profile')
+        else:
+            messages.error(request, "Please fix the errors below.")
+    else:
+        form = AddressForm(instance=address)
+
+    return render(request, 'store/edit_address.html', {'form': form, 'address': address})
+    
+@login_required
+def set_default_address(request, address_id):
+    """
+    Mark the address with id=address_id as the user's default address.
+    Only accepts POST for safety.
+    """
+    if request.method != "POST":
+        return redirect('store:profile')
+
+    addr = get_object_or_404(Address, id=address_id, user=request.user)
+
+    # unset other defaults
+    Address.objects.filter(user=request.user, is_default=True).exclude(id=addr.id).update(is_default=False)
+
+    # set this one as default
+    addr.is_default = True
+    addr.save()
+
+    messages.success(request, "Default address updated.")
+    return redirect('store:profile')
+    

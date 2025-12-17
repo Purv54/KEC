@@ -1,0 +1,147 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+
+<!-- Page header / mini hero -->
+<section class="py-4 border-bottom">
+    <div class="container">
+        <h2 class="fw-bold mb-1">Shop Products</h2>
+        <p class="text-muted mb-0">
+            Browse submersible pumps, monoset pumps, cables and more from KEC.
+        </p>
+    </div>
+</section>
+
+<section class="py-4">
+    <div class="container">
+        <div class="row g-4">
+
+            <!-- Sidebar: Categories + Search -->
+            <aside class="col-md-3">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold mb-3">Search</h5>
+                        <form method="get" action="{% url 'store:shop' %}">
+                            {% if selected_category %}
+                                <!-- preserve category when searching -->
+                                <input type="hidden" name="category" value="{{ selected_category }}">
+                            {% endif %}
+                            <div class="input-group input-group-sm">
+                                <input type="text"
+                                       class="form-control"
+                                       name="q"
+                                       placeholder="Search products..."
+                                       value="{{ search_query|default:'' }}">
+                                <button class="btn btn-outline-primary" type="submit">Go</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold mb-3">Categories</h5>
+                        <ul class="list-unstyled mb-0 shop-category-list">
+                            <li class="mb-2">
+                                <a href="{% url 'store:shop' %}"
+                                   class="d-flex justify-content-between align-items-center {% if not selected_category %}active-link{% endif %}">
+                                    <span>All Products</span>
+                                </a>
+                            </li>
+
+                            {% for cat in categories %}
+                                <li class="mb-2">
+                                    <a href="{% url 'store:shop' %}?category={{ cat.slug }}"
+                                       class="d-flex justify-content-between align-items-center {% if selected_category == cat.slug %}active-link{% endif %}">
+                                        <span>{{ cat.name }}</span>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main content: Products -->
+            <div class="col-md-9">
+                <!-- Top bar: results info -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        {% if selected_category %}
+                            {% for cat in categories %}
+                                {% if cat.slug == selected_category %}
+                                    <h5 class="mb-0">Category: <strong>{{ cat.name }}</strong></h5>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <h5 class="mb-0">All Products</h5>
+                        {% endif %}
+
+                        {% if search_query %}
+                            <small class="text-muted">
+                                Search: "{{ search_query }}"
+                            </small>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Products grid -->
+                <div class="row g-4">
+                    {% for product in products %}
+                        <div class="col-6 col-md-4">
+                            <div class="card product-card h-100 shadow-sm">
+                                {% if product.image %}
+                                    <img src="{{ product.image.url }}"
+                                         class="card-img-top product-img"
+                                         alt="{{ product.name }}">
+                                {% endif %}
+                                <div class="card-body d-flex flex-column">
+                                    <h6 class="card-title mb-1">{{ product.name }}</h6>
+                                    {% if product.model_number %}
+                                        <small class="text-muted d-block mb-2">
+                                            Model: {{ product.model_number }}
+                                        </small>
+                                    {% endif %}
+                                    <p class="fw-bold mb-2">₹ {{ product.price }}</p>
+
+                                    <p class="small text-muted flex-grow-1">
+                                        {{ product.description|truncatechars:70 }}
+                                    </p>
+
+                                    <div class="mt-2 d-flex justify-content-between align-items-center">
+                                        <a href="{% url 'store:product_detail' product.slug %}"
+                                        class="btn btn-sm btn-outline-secondary">
+                                            Details
+                                        </a>
+
+                                        {% if product.stock > 0 and product.is_available %}
+                                            <form method="post" action="{% url 'store:add_to_cart' product.id %}">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="quantity" value="1">
+                                                <input type="hidden" name="next" value="{% url 'store:shop' %}{% if selected_category %}?category={{ selected_category }}{% endif %}">
+                                                <button type="submit" class="btn btn-sm btn-primary">
+                                                    Add to Cart
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-secondary" disabled>Out of Stock</button>
+                                        {% endif %}
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="col-12">
+                            <p>No products found for selected filters.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+{% endblock %}
