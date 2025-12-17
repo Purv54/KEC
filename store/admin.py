@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Product, Order, OrderItem,Address
+from .models import Category, Product, Order, OrderItem,Address,Wishlist
 
 # Register your models here.
 
@@ -31,3 +31,9 @@ class AddressAdmin(admin.ModelAdmin):
     list_filter = ('is_default', 'city')
     search_fields = ('user__username', 'full_name', 'phone', 'city')
 
+@admin.register(Wishlist)
+class WishlistAdmin(admin.ModelAdmin):
+    list_display = ['user', 'product', 'added_on']
+    list_filter = ['added_on', 'user']
+    search_fields = ['user__username', 'product__name']
+    readonly_fields = ['added_on']

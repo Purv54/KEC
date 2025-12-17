@@ -90,7 +90,17 @@
                 <div class="row g-4">
                     {% for product in products %}
                         <div class="col-6 col-md-4">
-                            <div class="card product-card h-100 shadow-sm">
+                            <div class="card product-card h-100 shadow-sm position-relative">
+                                
+                                <!-- Wishlist Heart Icon (Top Right) -->
+                                {% if user.is_authenticated %}
+                                    <button class="btn btn-sm position-absolute top-0 end-0 m-2 wishlist-btn-{{ product.id }}" 
+                                            style="z-index: 10; border: none; background: rgba(255,255,255,0.8); border-radius: 50%; width: 35px; height: 35px;"
+                                            onclick="toggleWishlist({{ product.id }}, '{{ product.slug }}')">
+                                        <i class="{% if product.id in wishlist_product_ids %}fas{% else %}far{% endif %} fa-heart text-danger"></i>
+                                    </button>
+                                {% endif %}
+
                                 {% if product.image %}
                                     <img src="{{ product.image.url }}"
                                          class="card-img-top product-img"
@@ -143,5 +153,79 @@
         </div>
     </div>
 </section>
+
+<!-- Wishlist Toggle Script -->
+<script>
+function toggleWishlist(productId, productSlug) {
+    const btn = document.querySelector('.wishlist-btn-' + productId);
+    const icon = btn.querySelector('i');
+    
+    fetch('/wishlist/toggle/' + productId + '/', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Toggle heart icon
+            if (data.in_wishlist) {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+            } else {
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+            }
+            const countElem = document.getElementById('wishlist-count');
+                if (countElem) {
+                    countElem.innerText = data.wishlist_count;
+                }
+
+            // Optional: Show a toast notification
+            showToast(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Something went wrong!');
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showToast(message) {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '11';
+    toast.innerHTML = `
+        <div class="toast show" role="alert">
+            <div class="toast-body">
+                ${message}
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script>
 
 {% endblock %}

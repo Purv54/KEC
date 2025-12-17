@@ -13,7 +13,16 @@
         <div class="row g-4 mt-2">
             <!-- Left: Product Image -->
             <div class="col-md-5">
-                <div class="card shadow-sm">
+                <div class="card shadow-sm position-relative">
+                    <!-- Wishlist Heart Icon (Top Right) -->
+                    {% if user.is_authenticated %}
+                        <button class="btn btn-sm position-absolute top-0 end-0 m-3 wishlist-btn" 
+                                style="z-index: 10; border: none; background: rgba(255,255,255,0.9); border-radius: 50%; width: 40px; height: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+                                onclick="toggleWishlist({{ product.id }}, '{{ product.slug }}')">
+                            <i class="{% if is_in_wishlist %}fas{% else %}far{% endif %} fa-heart text-danger fs-5"></i>
+                        </button>
+                    {% endif %}
+
                     {% if product.image %}
                         <img src="{{ product.image.url }}"
                              alt="{{ product.name }}"
@@ -62,7 +71,7 @@
                     <div class="text-muted">
                           {{ product.description|safe }}
                     </div>
-                    </div>
+                </div>
                 {% endif %}
 
 
@@ -89,6 +98,19 @@
                         <button class="btn btn-secondary btn-sm" disabled>Out of Stock</button>
                     {% endif %}
 
+                    <!-- Wishlist Button (Alternative placement - below Add to Cart) -->
+                    {% if user.is_authenticated %}
+                        <button class="btn btn-outline-danger btn-sm wishlist-btn-text" 
+                                onclick="toggleWishlist({{ product.id }}, '{{ product.slug }}')">
+                            <i class="{% if is_in_wishlist %}fas{% else %}far{% endif %} fa-heart"></i>
+                            <span class="wishlist-text">{% if is_in_wishlist %}Remove from Wishlist{% else %}Add to Wishlist{% endif %}</span>
+                        </button>
+                    {% else %}
+                        <a href="{% url 'store:login' %}?next={{ request.path }}" class="btn btn-outline-danger btn-sm">
+                            <i class="far fa-heart"></i> Add to Wishlist
+                        </a>
+                    {% endif %}
+
                     <a href="{% url 'store:shop' %}" class="btn btn-outline-secondary btn-sm">
                         Continue Shopping
                     </a>
@@ -98,5 +120,94 @@
         </div>
     </div>
 </section>
+
+<!-- Wishlist Toggle Script -->
+<script>
+function toggleWishlist(productId, productSlug) {
+    const iconBtn = document.querySelector('.wishlist-btn i');
+    const textBtn = document.querySelector('.wishlist-btn-text i');
+    const textSpan = document.querySelector('.wishlist-text');
+    
+    fetch('/wishlist/toggle/' + productId + '/', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Toggle heart icons
+            if (data.in_wishlist) {
+                if (iconBtn) {
+                    iconBtn.classList.remove('far');
+                    iconBtn.classList.add('fas');
+                }
+                if (textBtn) {
+                    textBtn.classList.remove('far');
+                    textBtn.classList.add('fas');
+                }
+                if (textSpan) {
+                    textSpan.textContent = 'Remove from Wishlist';
+                }
+            } else {
+                if (iconBtn) {
+                    iconBtn.classList.remove('fas');
+                    iconBtn.classList.add('far');
+                }
+                if (textBtn) {
+                    textBtn.classList.remove('fas');
+                    textBtn.classList.add('far');
+                }
+                if (textSpan) {
+                    textSpan.textContent = 'Add to Wishlist';
+                }
+            }
+            
+            // Show toast notification
+            showToast(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Something went wrong!');
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showToast(message) {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '11';
+    toast.innerHTML = `
+        <div class="toast show" role="alert">
+            <div class="toast-body bg-white border rounded shadow">
+                ${message}
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script>
 
 {% endblock %}

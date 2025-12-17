@@ -1,6 +1,6 @@
 from django.shortcuts import render,get_object_or_404,redirect
 from django.contrib import messages
-from .models import Category, Product, Order, OrderItem,Address
+from .models import Category, Product, Order, OrderItem,Address,Wishlist
 from django.db.models import Q
 from django.views.decorators.http import require_POST
 from .forms import CheckoutForm,AddressForm,SignUpForm,ProfileForm
@@ -10,6 +10,8 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 import logging
 logger = logging.getLogger(__name__)
+
+from django.http import JsonResponse
 # Create your views here.
 
 def home(request):
@@ -21,12 +23,12 @@ def home(request):
 def shop(request):
     categories = Category.objects.all()
     products = Product.objects.filter(is_available=True)
-
+    
     # Category filter (?category=slug)
     category_slug = request.GET.get('category')
     if category_slug:
         products = products.filter(category__slug=category_slug)
-
+    
     # Search filter (?q=...)
     query = request.GET.get('q')
     if query:
@@ -35,19 +37,37 @@ def shop(request):
             Q(model_number__icontains=query) |
             Q(description__icontains=query)
         )
-
+    
+    # Get wishlist product IDs for current user
+    wishlist_product_ids = []
+    if request.user.is_authenticated:
+        wishlist_product_ids = list(
+            Wishlist.objects.filter(user=request.user).values_list('product_id', flat=True)
+        )
+    
     context = {
         'categories': categories,
         'products': products,
         'selected_category': category_slug,
         'search_query': query,
+        'wishlist_product_ids': wishlist_product_ids,
     }
     return render(request, 'store/shop.html', context)
 
 def product_detail(request, slug):
     product = get_object_or_404(Product, slug=slug, is_available=True)
+    
+    # Check if product is in wishlist
+    is_in_wishlist = False
+    if request.user.is_authenticated:
+        is_in_wishlist = Wishlist.objects.filter(
+            user=request.user, 
+            product=product
+        ).exists()
+    
     return render(request, 'store/product_detail.html', {
         'product': product,
+        'is_in_wishlist': is_in_wishlist,
     })
 
 # ---------- CART HELPERS ----------
@@ -436,3 +456,84 @@ def set_default_address(request, address_id):
     messages.success(request, "Default address updated.")
     return redirect('store:profile')
     
+@login_required
+def wishlist_view(request):
+    """Display user's wishlist"""
+    wishlist_items = Wishlist.objects.filter(user=request.user).select_related('product')
+    context = {
+        'wishlist_items': wishlist_items
+    }
+    return render(request, 'store/wishlist.html', context)
+
+@login_required
+def add_to_wishlist(request, product_id):
+    """Add product to wishlist"""
+    product = get_object_or_404(Product, id=product_id)
+    
+    # Check if already in wishlist
+    wishlist_item, created = Wishlist.objects.get_or_create(
+        user=request.user,
+        product=product
+    )
+    
+    if created:
+        messages.success(request, f'{product.name} added to wishlist!')
+    else:
+        messages.info(request, f'{product.name} is already in your wishlist.')
+    
+    # For AJAX requests
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': created,
+            'message': 'Added to wishlist' if created else 'Already in wishlist'
+        })
+    
+    return redirect(request.META.get('HTTP_REFERER', 'store:shop'))
+
+@login_required
+def remove_from_wishlist(request, product_id):
+    """Remove product from wishlist"""
+    product = get_object_or_404(Product, id=product_id)
+    
+    try:
+        wishlist_item = Wishlist.objects.get(user=request.user, product=product)
+        wishlist_item.delete()
+        messages.success(request, f'{product.name} removed from wishlist.')
+        
+        # For AJAX requests
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'message': 'Removed from wishlist'})
+            
+    except Wishlist.DoesNotExist:
+        messages.error(request, 'Item not found in wishlist.')
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': 'Item not found'})
+    
+    return redirect(request.META.get('HTTP_REFERER', 'store:wishlist'))
+
+@login_required
+def toggle_wishlist(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+
+    try:
+        wishlist_item = Wishlist.objects.get(user=request.user, product=product)
+        wishlist_item.delete()
+        in_wishlist = False
+        message = 'Removed from wishlist'
+    except Wishlist.DoesNotExist:
+        Wishlist.objects.create(user=request.user, product=product)
+        in_wishlist = True
+        message = 'Added to wishlist'
+
+    wishlist_count = Wishlist.objects.filter(user=request.user).count()
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'in_wishlist': in_wishlist,
+            'wishlist_count': wishlist_count,
+            'message': message
+        })
+
+    return redirect(request.META.get('HTTP_REFERER', 'store:shop'))
