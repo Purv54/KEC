@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'store',
+    'rest_framework',
+
 ]
 
 MIDDLEWARE = [
@@ -134,3 +136,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = 'store:shop'
 LOGOUT_REDIRECT_URL = 'store:home'
 LOGIN_URL = 'store:login'
+
+#razorpay ID and secrect KEY
+
+RAZORPAY_KEY_ID = "rzp_test_RuL8Fcb3RvCFS2"
+RAZORPAY_KEY_SECRET = "lWfTDbmehwLgHccxWSgIyUpH"
+CORS_ALLOW_ALL_ORIGINS = True

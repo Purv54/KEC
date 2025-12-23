@@ -14,9 +14,10 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
-
 class Product(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="products")
+
+    # Existing fields (DON'T TOUCH)
     name = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     model_number = models.CharField(max_length=100, blank=True, null=True)
@@ -26,8 +27,33 @@ class Product(models.Model):
     stock = models.PositiveIntegerField(default=0)
     is_available = models.BooleanField(default=True)
 
+    # 🔹 New OPTIONAL fields for recommendation
+    motor_power_hp = models.DecimalField(
+        max_digits=4, decimal_places=2, null=True, blank=True
+    )
+    max_head_m = models.PositiveIntegerField(null=True, blank=True)
+    max_flow_lpm = models.PositiveIntegerField(null=True, blank=True)
+    max_depth_ft = models.PositiveIntegerField(null=True, blank=True)
+
+    phase = models.CharField(
+        max_length=10,
+        choices=[('single', 'Single Phase'), ('three', 'Three Phase')],
+        null=True, blank=True
+    )
+
+    usage_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('domestic', 'Domestic'),
+            ('agriculture', 'Agriculture'),
+            ('industrial', 'Industrial')
+        ],
+        null=True, blank=True
+    )
+
     def __str__(self):
         return self.name
+
 
 class Order(models.Model):
     STATUS_CHOICES = (
@@ -36,6 +62,17 @@ class Order(models.Model):
         ('shipped', 'Shipped'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
+    )
+
+    PAYMENT_STATUS = (
+        ('pending', 'Pending'),
+        ('paid', 'Paid'),
+        ('failed', 'Failed'),
+    )
+
+    PAYMENT_METHOD = (
+        ('cod', 'Cash On Delivery'),
+        ('razorpay', 'Razorpay'),
     )
 
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -48,6 +85,13 @@ class Order(models.Model):
     notes = models.TextField(blank=True, null=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD, null=True,blank=True)
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS, default='pending')
+    razorpay_order_id = models.CharField(max_length=100, blank=True, null=True)
+    razorpay_payment_id = models.CharField(max_length=100, blank=True, null=True)
+    razorpay_signature = models.CharField(max_length=200, blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

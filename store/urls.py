@@ -33,5 +33,9 @@ urlpatterns = [
     path('wishlist/add/<int:product_id>/', views.add_to_wishlist, name='add_to_wishlist'),
     path('wishlist/remove/<int:product_id>/', views.remove_from_wishlist, name='remove_from_wishlist'),
     path('wishlist/toggle/<int:product_id>/', views.toggle_wishlist, name='toggle_wishlist'),
-    
+
+    path('payment/razorpay/', views.razorpay_payment, name='razorpay_payment'),
+    path('api/payment/verify/', views.verify_payment, name='verify_payment'),
+
+ 
 ]

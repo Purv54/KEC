@@ -1,5 +1,6 @@
 from django.shortcuts import render,get_object_or_404,redirect
 from django.contrib import messages
+from django.urls import reverse
 from .models import Category, Product, Order, OrderItem,Address,Wishlist
 from django.db.models import Q
 from django.views.decorators.http import require_POST
@@ -12,7 +13,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 from django.http import JsonResponse
-# Create your views here.
+
+import razorpay
+from django.conf import settings
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from razorpay.errors import SignatureVerificationError
+
+
 
 def home(request):
     categories = Category.objects.all()
@@ -84,8 +93,7 @@ def _save_cart(request, cart):
 
 
 # ---------- CART VIEWS ----------
-
-@require_POST
+@login_required
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id, is_available=True)
 
@@ -113,7 +121,7 @@ def add_to_cart(request, product_id):
         return redirect(next_url)
     return redirect('store:cart_detail')
 
-
+@login_required
 def cart_detail(request):
     cart = _get_cart(request)
     items = []
@@ -184,6 +192,7 @@ def update_cart(request, product_id):
     _save_cart(request, cart)
     return redirect('store:cart_detail')
 
+@login_required
 def checkout(request):
     cart = _get_cart(request)
     if not cart:
@@ -209,6 +218,7 @@ def checkout(request):
         user_addresses = request.user.addresses.all()
 
     if request.method == 'POST':
+        payment_method = request.POST.get('payment_method', 'cod')
         # first check if a saved address id was posted
         logger.debug("Checkout POST data: %s", request.POST.dict())
         address_id = request.POST.get('address_id')
@@ -224,6 +234,11 @@ def checkout(request):
 
         if selected_address:
             # create order using selected_address values
+            if payment_method == 'online':
+                request.session['checkout_data'] = request.POST.dict()
+                request.session['cart_snapshot'] = cart
+                return redirect('store:razorpay_payment')
+            
             with transaction.atomic():
                 order = Order.objects.create(
                     user=request.user if request.user.is_authenticated else None,
@@ -233,7 +248,7 @@ def checkout(request):
                     address=selected_address.address_line,
                     city=selected_address.city,
                     pincode=selected_address.pincode,
-                    notes=''  # you can add notes from POST if you included field in form
+                    notes=''
                 )
 
                 # create order items
@@ -260,6 +275,11 @@ def checkout(request):
         else:
             # No saved address used — validate normal checkout form
             if form.is_valid():
+                if payment_method == 'online':
+                    request.session['checkout_data'] = request.POST.dict()
+                    request.session['cart_snapshot'] = cart
+                    return redirect('store:razorpay_payment')
+                
                 with transaction.atomic():
                     order = form.save(commit=False)
                     if request.user.is_authenticated:
@@ -301,11 +321,10 @@ def checkout(request):
         'user_addresses': user_addresses,
     })
 
+@login_required
 def order_success(request, order_id):
-    order = get_object_or_404(Order, id=order_id)
-    return render(request, 'store/order_success.html', {
-        'order': order,
-    })
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    return render(request, 'store/order_success.html', {'order': order})
 
 
 def signup_view(request):
@@ -537,3 +556,96 @@ def toggle_wishlist(request, product_id):
         })
 
     return redirect(request.META.get('HTTP_REFERER', 'store:shop'))
+
+@login_required
+def razorpay_payment(request):
+    cart = request.session.get('cart_snapshot')
+    if not cart:
+        messages.error(request, "Invalid payment session")
+        return redirect('store:cart_detail')
+
+    total = 0
+    for pid, qty in cart.items():
+        product = Product.objects.get(id=pid)
+        total += product.price * qty
+
+    client = razorpay.Client(auth=(
+        settings.RAZORPAY_KEY_ID,
+        settings.RAZORPAY_KEY_SECRET
+    ))
+
+    razorpay_order = client.order.create({
+        "amount": int(total * 100),  # paise
+        "currency": "INR",
+        "payment_capture": 1
+    })
+
+    return render(request, 'store/razorpay.html', {
+        'razorpay_key': settings.RAZORPAY_KEY_ID,
+        'order_id': razorpay_order['id'],
+        'amount': total
+    })
+
+@api_view(['POST'])
+def verify_payment(request):
+    client = razorpay.Client(auth=(
+        settings.RAZORPAY_KEY_ID,
+        settings.RAZORPAY_KEY_SECRET
+    ))
+
+    data = request.data
+
+    # 1️⃣ Verify signature
+    try:
+        client.utility.verify_payment_signature({
+            'razorpay_payment_id': data.get('razorpay_payment_id'),
+            'razorpay_order_id': data.get('razorpay_order_id'),
+            'razorpay_signature': data.get('razorpay_signature'),
+        })
+    except SignatureVerificationError:
+        return Response({'success': False, 'error': 'Signature verification failed'}, status=400)
+
+    # 2️⃣ Get session data
+    cart = request.session.get('cart_snapshot')
+    checkout_data = request.session.get('checkout_data')
+
+    if not cart or not checkout_data:
+        return Response({'success': False, 'error': 'Session expired'}, status=400)
+
+    # 3️⃣ Create order
+    with transaction.atomic():
+        order = Order.objects.create(
+            user=request.user,
+            full_name=checkout_data.get('full_name'),
+            email=checkout_data.get('email'),
+            phone=checkout_data.get('phone'),
+            address=checkout_data.get('address'),
+            city=checkout_data.get('city'),
+            pincode=checkout_data.get('pincode'),
+            notes=checkout_data.get('notes'),
+
+            payment_method='razorpay',
+            payment_status='paid',
+            razorpay_order_id=data.get('razorpay_order_id'),
+            razorpay_payment_id=data.get('razorpay_payment_id'),
+            razorpay_signature=data.get('razorpay_signature'),
+        )
+
+        for pid, qty in cart.items():
+            product = Product.objects.get(id=pid)
+            OrderItem.objects.create(
+                order=order,
+                product=product,
+                quantity=qty,
+                price=product.price
+            )
+
+        # 4️⃣ Clear cart + session
+        request.session['cart'] = {}
+        request.session.pop('cart_snapshot', None)
+        request.session.pop('checkout_data', None)
+
+    return Response({
+        'success': True,
+        'redirect_url': reverse('store:order_success', args=[order.id])
+    })
