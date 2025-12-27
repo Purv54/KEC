@@ -19,7 +19,11 @@ from django.conf import settings
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+
+
 from razorpay.errors import SignatureVerificationError
+from store.utils import send_order_receipt
+
 
 
 
@@ -233,9 +237,16 @@ def checkout(request):
                 selected_address = None
 
         if selected_address:
-            # create order using selected_address values
             if payment_method == 'online':
-                request.session['checkout_data'] = request.POST.dict()
+                request.session['checkout_data'] = {
+                    'full_name': selected_address.full_name,
+                    'email': request.user.email if request.user.is_authenticated else '',
+                    'phone': selected_address.phone,
+                    'address': selected_address.address_line,
+                    'city': selected_address.city,
+                    'pincode': selected_address.pincode,
+                    'notes': '',
+                }
                 request.session['cart_snapshot'] = cart
                 return redirect('store:razorpay_payment')
             
@@ -595,7 +606,7 @@ def verify_payment(request):
 
     data = request.data
 
-    # 1️⃣ Verify signature
+    # Verify signature
     try:
         client.utility.verify_payment_signature({
             'razorpay_payment_id': data.get('razorpay_payment_id'),
@@ -605,19 +616,19 @@ def verify_payment(request):
     except SignatureVerificationError:
         return Response({'success': False, 'error': 'Signature verification failed'}, status=400)
 
-    # 2️⃣ Get session data
+    # Get session data
     cart = request.session.get('cart_snapshot')
     checkout_data = request.session.get('checkout_data')
 
     if not cart or not checkout_data:
         return Response({'success': False, 'error': 'Session expired'}, status=400)
 
-    # 3️⃣ Create order
+    # Create order
     with transaction.atomic():
         order = Order.objects.create(
             user=request.user,
             full_name=checkout_data.get('full_name'),
-            email=checkout_data.get('email'),
+            email = checkout_data.get('email') or request.user.email,
             phone=checkout_data.get('phone'),
             address=checkout_data.get('address'),
             city=checkout_data.get('city'),
@@ -640,12 +651,19 @@ def verify_payment(request):
                 price=product.price
             )
 
-        # 4️⃣ Clear cart + session
+        # Clear cart + session
         request.session['cart'] = {}
         request.session.pop('cart_snapshot', None)
         request.session.pop('checkout_data', None)
+
+    try:
+        send_order_receipt(order)
+        print("Receipt email sent to:", order.email)
+    except Exception as e:
+        print("Receipt email FAILED:", e)
 
     return Response({
         'success': True,
         'redirect_url': reverse('store:order_success', args=[order.id])
     })
+

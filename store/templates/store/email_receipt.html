@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; border: 1px solid #ddd; }
+        th { background: #f4f4f4; }
+    </style>
+</head>
+<body>
+
+<h2>Payment Receipt - KEC Pumps</h2>
+
+<p><strong>Order ID:</strong> {{ order.id }}</p>
+<p><strong>Name:</strong> {{ order.full_name }}</p>
+<p><strong>Email:</strong> {{ order.email }}</p>
+<p><strong>Phone:</strong> {{ order.phone }}</p>
+<p><strong>Address:</strong> {{ order.address }}, {{ order.city }} - {{ order.pincode }}</p>
+
+<h3>Order Details</h3>
+<table>
+<tr>
+    <th>Product</th>
+    <th>Qty</th>
+    <th>Price</th>
+    <th>Total</th>
+</tr>
+{% for item in items %}
+<tr>
+    <td>{{ item.product.name }}</td>
+    <td>{{ item.quantity }}</td>
+    <td>₹{{ item.price }}</td>
+    <td>₹{{ item.total }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<h3>Total Amount Paid: ₹{{ total }}</h3>
+
+<p>Payment Method: Razorpay</p>
+<p>Payment ID: {{ order.razorpay_payment_id }}</p>
+
+<p>Thank you for shopping with <strong>KEC Pumps</strong> </p>
+
+</body>
+</html>

@@ -37,5 +37,6 @@ urlpatterns = [
     path('payment/razorpay/', views.razorpay_payment, name='razorpay_payment'),
     path('api/payment/verify/', views.verify_payment, name='verify_payment'),
 
+   
  
 ]
