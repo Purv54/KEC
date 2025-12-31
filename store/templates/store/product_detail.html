@@ -18,7 +18,7 @@
                     {% if user.is_authenticated %}
                         <button class="btn btn-sm position-absolute top-0 end-0 m-3 wishlist-btn" 
                                 style="z-index: 10; border: none; background: rgba(255,255,255,0.9); border-radius: 50%; width: 40px; height: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
-                                onclick="toggleWishlist({{ product.id }}, '{{ product.slug }}')">
+                                onclick="toggleWishlist('{{ product.id }}', '{{ product.slug }}')">
                             <i class="{% if is_in_wishlist %}fas{% else %}far{% endif %} fa-heart text-danger fs-5"></i>
                         </button>
                     {% endif %}
@@ -101,7 +101,7 @@
                     <!-- Wishlist Button (Alternative placement - below Add to Cart) -->
                     {% if user.is_authenticated %}
                         <button class="btn btn-outline-danger btn-sm wishlist-btn-text" 
-                                onclick="toggleWishlist({{ product.id }}, '{{ product.slug }}')">
+                                onclick="toggleWishlist('{{ product.id }}', '{{ product.slug }}')">
                             <i class="{% if is_in_wishlist %}fas{% else %}far{% endif %} fa-heart"></i>
                             <span class="wishlist-text">{% if is_in_wishlist %}Remove from Wishlist{% else %}Add to Wishlist{% endif %}</span>
                         </button>
@@ -123,91 +123,83 @@
 
 <!-- Wishlist Toggle Script -->
 <script>
-function toggleWishlist(productId, productSlug) {
+function toggleWishlist(productId) {
+
     const iconBtn = document.querySelector('.wishlist-btn i');
     const textBtn = document.querySelector('.wishlist-btn-text i');
     const textSpan = document.querySelector('.wishlist-text');
-    
-    fetch('/wishlist/toggle/' + productId + '/', {
-        method: 'GET',
+
+    fetch(`/wishlist/toggle/${productId}/`, {
+        method: 'POST',
         headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
         }
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            // Toggle heart icons
-            if (data.in_wishlist) {
-                if (iconBtn) {
-                    iconBtn.classList.remove('far');
-                    iconBtn.classList.add('fas');
-                }
-                if (textBtn) {
-                    textBtn.classList.remove('far');
-                    textBtn.classList.add('fas');
-                }
-                if (textSpan) {
-                    textSpan.textContent = 'Remove from Wishlist';
-                }
-            } else {
-                if (iconBtn) {
-                    iconBtn.classList.remove('fas');
-                    iconBtn.classList.add('far');
-                }
-                if (textBtn) {
-                    textBtn.classList.remove('fas');
-                    textBtn.classList.add('far');
-                }
-                if (textSpan) {
-                    textSpan.textContent = 'Add to Wishlist';
-                }
-            }
-            
-            // Show toast notification
-            showToast(data.message);
+        if (!data.success) {
+            showToast('Something went wrong!');
+            return;
         }
+
+        // Toggle icons
+        if (data.in_wishlist) {
+            iconBtn?.classList.replace('far', 'fas');
+            textBtn?.classList.replace('far', 'fas');
+            if (textSpan) textSpan.innerText = 'Remove from Wishlist';
+        } else {
+            iconBtn?.classList.replace('fas', 'far');
+            textBtn?.classList.replace('fas', 'far');
+            if (textSpan) textSpan.innerText = 'Add to Wishlist';
+        }
+
+        // 🔥 Update wishlist count instantly
+        const countElem = document.getElementById('wishlist-count');
+        if (countElem) {
+            countElem.innerText = data.wishlist_count;
+        }
+
+        showToast(data.message);
     })
     .catch(error => {
-        console.error('Error:', error);
-        showToast('Something went wrong!');
+        console.error(error);
+        showToast('Server error!');
     });
 }
 
+
+// CSRF helper
 function getCookie(name) {
     let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
+    if (document.cookie) {
+        document.cookie.split(';').forEach(cookie => {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.split('=')[1]);
             }
-        }
+        });
     }
     return cookieValue;
 }
 
+
+// Toast message
 function showToast(message) {
-    // Simple toast notification
     const toast = document.createElement('div');
-    toast.className = 'position-fixed bottom-0 end-0 p-3';
-    toast.style.zIndex = '11';
+    toast.className = 'toast-container position-fixed bottom-0 end-0 p-3';
     toast.innerHTML = `
-        <div class="toast show" role="alert">
-            <div class="toast-body bg-white border rounded shadow">
+        <div class="toast show">
+            <div class="toast-body bg-white shadow rounded">
                 ${message}
             </div>
         </div>
     `;
     document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
+
+    setTimeout(() => toast.remove(), 2500);
 }
 </script>
+
 
 {% endblock %}

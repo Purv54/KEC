@@ -5,6 +5,7 @@ from django.conf import settings
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
+import random
 
 import io
 
@@ -132,3 +133,7 @@ KEC Pumps
         print(f"PDF receipt email sent to {order.email}")
     except Exception as e:
         print("Receipt email failed:", e)
+
+
+def generate_otp():
+    return str(random.randint(100000, 999999))

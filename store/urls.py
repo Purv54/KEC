@@ -37,6 +37,13 @@ urlpatterns = [
     path('payment/razorpay/', views.razorpay_payment, name='razorpay_payment'),
     path('api/payment/verify/', views.verify_payment, name='verify_payment'),
 
+    
+    path('api/forgot-password/', views.send_otp, name="send_otp"),
+    path('api/verify-otp/', views.verify_otp, name="verify_otp"),
+    path('api/reset-password/', views.reset_password, name="reset_password"),
+    path('verify-otp/', views.verify_otp_page, name='verify_otp_page'),
+    path('reset-password/', views.reset_password_page, name='reset_password_page'),
+    path('forgot-password/', views.forgot_password_page, name='forgot_password'),
+]
    
  
-]

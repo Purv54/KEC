@@ -24,8 +24,12 @@ from rest_framework.response import Response
 from razorpay.errors import SignatureVerificationError
 from store.utils import send_order_receipt
 
+from django.core.mail import send_mail
+from .models import PasswordResetOTP
+from .utils import generate_otp
+from django.contrib.auth.models import User
 
-
+from django.contrib.auth.hashers import make_password
 
 def home(request):
     categories = Category.objects.all()
@@ -667,3 +671,79 @@ def verify_payment(request):
         'redirect_url': reverse('store:order_success', args=[order.id])
     })
 
+
+@api_view(['POST'])
+def send_otp(request):
+    email = request.data.get('email')
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({'error': 'Email not registered'}, status=400)
+
+    otp = generate_otp()
+    PasswordResetOTP.objects.create(user=user, otp=otp)
+
+    send_mail(
+        subject='KEC Password Reset OTP',
+        message=f'Your OTP is {otp}. Valid for 10 minutes.',
+        from_email=None,
+        recipient_list=[email],
+    )
+
+    return Response({'message': 'OTP sent successfully'})
+
+@api_view(['POST'])
+def verify_otp(request):
+    email = request.data.get('email')
+    otp = request.data.get('otp')
+
+    try:
+        user = User.objects.get(email=email)
+        otp_obj = PasswordResetOTP.objects.filter(
+            user=user,
+            otp=otp,
+            is_verified=False
+        ).last()
+    except:
+        return Response({'error': 'Invalid OTP'}, status=400)
+
+    if otp_obj.is_expired():
+        return Response({'error': 'OTP expired'}, status=400)
+
+    otp_obj.is_verified = True
+    otp_obj.save()
+
+    return Response({
+        'message': 'OTP verified',
+        'token': str(otp_obj.token)
+    })
+
+
+
+@api_view(['POST'])
+def reset_password(request):
+    token = request.data.get('token')
+    new_password = request.data.get('password')
+
+    try:
+        otp_obj = PasswordResetOTP.objects.get(token=token, is_verified=True)
+    except PasswordResetOTP.DoesNotExist:
+        return Response({'error': 'Invalid token'}, status=400)
+
+    user = otp_obj.user
+    user.password = make_password(new_password)
+    user.save()
+
+    otp_obj.delete()  # One-time use
+
+    return Response({'message': 'Password reset successful'})
+
+def forgot_password_page(request):
+    return render(request, 'store/forgot_password.html')
+
+def verify_otp_page(request):
+    return render(request, 'store/verify_otp.html')
+
+def reset_password_page(request):
+    return render(request, 'store/reset_password.html')
