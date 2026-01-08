@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>KEC Submersible Motor & Pump</title>
 
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
     {% load static %}
 
     <!-- Bootstrap CSS -->
@@ -12,6 +14,7 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'store/css/style.css' %}">
 
+    
     {% block extra_css %}{% endblock %}
 
     <!-- Bootstrap Icons -->
@@ -30,34 +33,52 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark kec-navbar shadow-sm sticky-top">
   <div class="container">
 
-    <!-- Logo -->
-    <a class="navbar-brand d-flex align-items-center fw-bold" href="{% url 'store:home' %}">
-      <img src="{% static 'store/images/KEC_logo.jpg' %}" alt="KEC Logo"
-           class="kec-logo me-2">
-    </a>
-
-    <!-- Mobile toggle -->
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#kecNavbar">
+    <!-- Mobile hamburger (ONLY mobile) -->
+    <button class="navbar-toggler d-lg-none me-2"
+            type="button"
+            data-bs-toggle="offcanvas"
+            data-bs-target="#mobileMenu">
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div class="collapse navbar-collapse" id="kecNavbar">
+    <!-- MOBILE SEARCH (only mobile) -->
+    <form class="d-flex d-lg-none ms-auto me-2 align-items-center"
+          method="get"
+          action="{% url 'store:shop' %}"
+          style="flex:1; max-width: 260px;">
+
+      <input class="form-control form-control-sm"
+            type="search"
+            name="q"
+            placeholder="Search..."
+            aria-label="Search">
+
+      <button class="btn btn-primary btn-sm ms-1" type="submit">
+        <i class="bi bi-search"></i>
+      </button>
+    </form>
+
+
+    <!-- Logo -->
+    <a class="navbar-brand d-flex align-items-center fw-bold"
+       href="{% url 'store:home' %}">
+      <img src="{% static 'store/images/KEC_logo.jpg' %}"
+           class="kec-logo me-2">
+    </a>
+
+    <!-- DESKTOP NAVBAR (unchanged layout) -->
+    <div class="collapse navbar-collapse d-none d-lg-flex" id="kecNavbar">
 
       <!-- Left menu -->
       <ul class="navbar-nav me-auto align-items-lg-center">
-
         <li class="nav-item">
-          <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'store:home' %}">
-            Home
-          </a>
+          <a class="nav-link {% if request.path == '/' %}active{% endif %}"
+             href="{% url 'store:home' %}">Home</a>
         </li>
 
         <li class="nav-item">
-          {% if request.path == '/shop/' or request.path|slice:"0:6" == '/shop/' %}
-            <a class="nav-link active" href="{% url 'store:shop' %}">Shop</a>
-          {% else %}
-            <a class="nav-link" href="{% url 'store:shop' %}">Shop</a>
-          {% endif %}
+          <a class="nav-link {% if '/shop' in request.path %}active{% endif %}"
+             href="{% url 'store:shop' %}">Shop</a>
         </li>
 
         <li class="nav-item">
@@ -65,66 +86,54 @@
             🤖 K-BOT
           </a>
         </li>
-
-        <!-- Search -->
-        <li class="nav-item ms-lg-3">
-          <form class="d-flex kec-search" method="get" action="{% url 'store:shop' %}">
-            <input class="form-control" type="search" name="q" placeholder="Search pumps, motors...">
-            <button class="btn btn-primary ms-2" type="submit">
-              <i class="bi bi-search"></i>
-            </button>
-          </form>
-        </li>
       </ul>
 
-      <!-- Right side -->
+      <!-- Center Search -->
+      <form class="d-flex kec-search mx-auto"
+            method="get"
+            action="{% url 'store:shop' %}"
+            style="max-width:420px;width:100%;">
+        <input class="form-control"
+               type="search"
+               name="q"
+               placeholder="Search pumps, motors...">
+        <button class="btn btn-primary ms-2">
+          <i class="bi bi-search"></i>
+        </button>
+      </form>
+
+      <!-- Right menu -->
       <ul class="navbar-nav ms-auto align-items-center">
 
         {% if user.is_authenticated %}
-          <!-- User dropdown -->
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" data-bs-toggle="dropdown">
-              <i class="bi bi-person-circle me-1"></i> {{ user.username }}
+            <a class="nav-link dropdown-toggle"
+               data-bs-toggle="dropdown">
+              <i class="bi bi-person-circle"></i> {{ user.username }}
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
               <li><a class="dropdown-item" href="{% url 'store:profile' %}">Profile</a></li>
-              <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item text-danger" href="{% url 'store:logout' %}">Logout</a></li>
             </ul>
           </li>
 
-          <!-- Wishlist -->
           <li class="nav-item ms-2">
             <a href="{% url 'store:wishlist' %}" class="nav-link">
               <i class="far fa-heart"></i>
               (<span id="wishlist-count">{{ wishlist_count }}</span>)
             </a>
           </li>
-
-        {% else %}
-          <li class="nav-item">
-            <a class="btn btn-outline-light btn-sm ms-2" href="{% url 'store:login' %}">
-              Login
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="btn btn-warning btn-sm ms-2 text-dark fw-semibold" href="{% url 'store:signup' %}">
-              Sign Up
-            </a>
-          </li>
         {% endif %}
 
-        <!-- Cart -->
         <li class="nav-item ms-3">
-          <a class="nav-link position-relative" href="{% url 'store:cart_detail' %}">
+          <a class="nav-link position-relative"
+             href="{% url 'store:cart_detail' %}">
             <i class="bi bi-cart3 fs-5"></i>
-            {% with cart=request.session.cart %}
-              {% if cart %}
-                <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">
-                  {{ cart|length }}
-                </span>
-              {% endif %}
-            {% endwith %}
+            {% if request.session.cart %}
+              <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">
+                {{ request.session.cart|length }}
+              </span>
+            {% endif %}
           </a>
         </li>
 
@@ -134,6 +143,72 @@
 </nav>
 
 <!-- ✅ NAVBAR END -->
+
+<!-- ✅ MOBILE OFFCANVAS MENU -->
+<div class="offcanvas offcanvas-start bg-dark text-light"
+     tabindex="-1"
+     id="mobileMenu">
+
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">KEC Menu</h5>
+    <button type="button" class="btn-close btn-close-white"
+            data-bs-dismiss="offcanvas"></button>
+  </div>
+
+  <div class="offcanvas-body">
+
+    <ul class="navbar-nav">
+
+      <li class="nav-item">
+        <a class="nav-link text-light" href="{% url 'store:home' %}">Home</a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link text-light" href="{% url 'store:shop' %}">Shop</a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link text-light" href="{% url 'store:pump_chatbot' %}">
+          🤖 K-BOT
+        </a>
+      </li>
+
+      <hr class="text-secondary">
+
+      {% if user.is_authenticated %}
+        <a class="nav-link text-light" href="{% url 'store:profile' %}">
+          <i class="bi bi-person-circle"></i> Profile
+        </a>
+
+        <a class="nav-link text-light" href="{% url 'store:wishlist' %}">
+          <i class="far fa-heart"></i> Wishlist
+        </a>
+
+        <a class="nav-link text-light position-relative"
+          href="{% url 'store:cart_detail' %}">
+          <i class="bi bi-cart3"></i> Cart
+          {% if request.session.cart %}
+            <span class="badge bg-danger ms-2">
+              {{ request.session.cart|length }}
+            </span>
+          {% endif %}
+        </a>
+
+        <a class="nav-link text-danger" href="{% url 'store:logout' %}">
+          Logout
+        </a>
+      {% else %}
+        <a class="btn btn-outline-light mb-2" href="{% url 'store:login' %}">
+          Login
+        </a>
+        <a class="btn btn-warning text-dark" href="{% url 'store:signup' %}">
+          Sign Up
+        </a>
+      {% endif %}
+    </ul>
+  </div>
+</div>
+
 
 
 <!-- ✅ MAIN CONTENT -->
