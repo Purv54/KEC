@@ -17,10 +17,6 @@ from django.http import JsonResponse
 import razorpay
 from django.conf import settings
 
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-
-
 from razorpay.errors import SignatureVerificationError
 from store.utils import send_order_receipt
 
@@ -30,6 +26,16 @@ from .utils import generate_otp
 from django.contrib.auth.models import User
 
 from django.contrib.auth.hashers import make_password
+
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny,IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes , authentication_classes
+from rest_framework.authentication import SessionAuthentication
+
+from .serializers import ProductRecommendationSerializer
+from .service.recommendation import recommend_pumps
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework import status
 
 def home(request):
     categories = Category.objects.all()
@@ -51,8 +57,7 @@ def shop(request):
     if query:
         products = products.filter(
             Q(name__icontains=query) |
-            Q(model_number__icontains=query) |
-            Q(description__icontains=query)
+            Q(model_number__icontains=query) 
         )
     
     # Get wishlist product IDs for current user
@@ -602,6 +607,8 @@ def razorpay_payment(request):
     })
 
 @api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
 def verify_payment(request):
     client = razorpay.Client(auth=(
         settings.RAZORPAY_KEY_ID,
@@ -673,12 +680,17 @@ def verify_payment(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def send_otp(request):
     email = request.data.get('email')
 
-    try:
-        user = User.objects.get(email=email)
-    except User.DoesNotExist:
+    user = User.objects.filter(
+        email=email,
+        is_staff=False,
+        is_superuser=False
+    ).first()
+
+    if not user:
         return Response({'error': 'Email not registered'}, status=400)
 
     otp = generate_otp()
@@ -694,18 +706,22 @@ def send_otp(request):
     return Response({'message': 'OTP sent successfully'})
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def verify_otp(request):
     email = request.data.get('email')
     otp = request.data.get('otp')
 
-    try:
-        user = User.objects.get(email=email)
-        otp_obj = PasswordResetOTP.objects.filter(
-            user=user,
-            otp=otp,
-            is_verified=False
-        ).last()
-    except:
+    user = User.objects.filter(email=email).first()
+    if not user:
+        return Response({'error': 'Invalid email'}, status=400)
+
+    otp_obj = PasswordResetOTP.objects.filter(
+        user=user,
+        otp=otp,
+        is_verified=False
+    ).last()
+
+    if not otp_obj:
         return Response({'error': 'Invalid OTP'}, status=400)
 
     if otp_obj.is_expired():
@@ -719,23 +735,25 @@ def verify_otp(request):
         'token': str(otp_obj.token)
     })
 
-
-
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def reset_password(request):
     token = request.data.get('token')
     new_password = request.data.get('password')
 
+    if not new_password:
+        return Response({'error': 'Password is required'}, status=400)
+
     try:
         otp_obj = PasswordResetOTP.objects.get(token=token, is_verified=True)
     except PasswordResetOTP.DoesNotExist:
-        return Response({'error': 'Invalid token'}, status=400)
+        return Response({'error': 'Invalid or expired token'}, status=400)
 
     user = otp_obj.user
-    user.password = make_password(new_password)
+    user.set_password(new_password)  # BETTER than make_password
     user.save()
 
-    otp_obj.delete()  # One-time use
+    otp_obj.delete()
 
     return Response({'message': 'Password reset successful'})
 
@@ -747,3 +765,37 @@ def verify_otp_page(request):
 
 def reset_password_page(request):
     return render(request, 'store/reset_password.html')
+
+@csrf_exempt 
+@api_view(['POST'])
+@permission_classes([AllowAny]) 
+def pump_recommendation_api(request):
+    depth_ft = request.data.get('depth_ft')
+    usage_type = request.data.get('usage_type')
+    phase = request.data.get('phase')
+    budget = request.data.get('budget')
+
+    # Basic validation
+    if not depth_ft or not usage_type or not phase:
+        return Response(
+            {"error": "depth_ft, usage_type and phase are required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    products = recommend_pumps(
+        depth_ft=int(depth_ft),
+        usage_type=usage_type,
+        phase=phase,
+        max_budget=budget
+    )
+
+    serializer = ProductRecommendationSerializer(products, many=True)
+
+    return Response({
+        "recommended_count": products.count(),
+        "recommendations": serializer.data
+    })
+
+
+def pump_chatbot_page(request):
+    return render(request, 'store/pump_chatbot.html')

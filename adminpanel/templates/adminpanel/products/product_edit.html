@@ -1,0 +1,25 @@
+{% extends 'adminpanel/base.html' %}
+
+{% block title %}Edit Product{% endblock %}
+
+{% block content %}
+<h4 class="mb-4">✏ Edit Product</h4>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    {% include 'adminpanel/products/_product_form.html' %}
+
+    {% if product.image %}
+        <div class="mt-3">
+            <strong>Current Image:</strong><br>
+            <img src="{{ product.image.url }}" class="img-thumbnail" width="180">
+        </div>
+    {% endif %}
+
+    <div class="text-end mt-4">
+        <button class="btn btn-primary px-4">Update</button>
+        <a href="{% url 'adminpanel:product_list' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

@@ -9,7 +9,6 @@ urlpatterns = [
     path('shop/', views.shop, name='shop'),
     path('product/<slug:slug>/', views.product_detail, name='product_detail'),
 
-    # 🛒 Cart URLs
     path('cart/', views.cart_detail, name='cart_detail'),
     path('cart/add/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
     path('cart/remove/<int:product_id>/', views.remove_from_cart, name='remove_from_cart'),
@@ -44,6 +43,11 @@ urlpatterns = [
     path('verify-otp/', views.verify_otp_page, name='verify_otp_page'),
     path('reset-password/', views.reset_password_page, name='reset_password_page'),
     path('forgot-password/', views.forgot_password_page, name='forgot_password'),
+
+    path('api/recommend-pump/', views.pump_recommendation_api, name='pump_recommendation'),
+    path('pump-chatbot/', views.pump_chatbot_page, name='pump_chatbot'),
+   
+
 ]
    
  

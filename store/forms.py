@@ -17,11 +17,19 @@ class CheckoutForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
-
 class SignUpForm(UserCreationForm):
-    email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
-    first_name = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    last_name = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
+    first_name = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    last_name = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
 
     class Meta:
         model = User
@@ -29,10 +37,17 @@ class SignUpForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Apply bootstrap classes to built-in fields
         self.fields['username'].widget.attrs.update({'class': 'form-control'})
         self.fields['password1'].widget.attrs.update({'class': 'form-control'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
+
+    # 🔴 ADD THIS METHOD ONLY
+    def clean_email(self):
+        email = self.cleaned_data.get('email').lower()
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("Email already registered")
+        return email
+
 
 class AddressForm(forms.ModelForm):
     class Meta:

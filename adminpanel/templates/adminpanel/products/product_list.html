@@ -1,0 +1,160 @@
+{% extends 'adminpanel/base.html' %}
+{% block title %}Products | Admin{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold">Products</h3>
+    <a href="{% url 'adminpanel:product_add' %}" class="btn btn-primary">
+        Add Product
+    </a>
+</div>
+
+<!-- 🔍 SEARCH -->
+<form method="get" class="row g-2 mb-4">
+    <div class="col-md-4">
+        <input type="text"
+               name="q"
+               value="{{ search_query }}"
+               class="form-control"
+               placeholder="Search product by name">
+    </div>
+
+    <div class="col-md-3">
+        <select name="sort" class="form-select">
+            <option value="">Sort By</option>
+            <option value="price_asc" {% if sort_by == 'price_asc' %}selected{% endif %}>Price: Low → High</option>
+            <option value="price_desc" {% if sort_by == 'price_desc' %}selected{% endif %}>Price: High → Low</option>
+            <option value="stock_asc" {% if sort_by == 'stock_asc' %}selected{% endif %}>Stock: Low → High</option>
+            <option value="stock_desc" {% if sort_by == 'stock_desc' %}selected{% endif %}>Stock: High → Low</option>
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <button class="btn btn-primary w-100">Apply</button>
+    </div>
+
+    <div class="col-md-2">
+        <a href="{% url 'adminpanel:product_list' %}"
+           class="btn btn-outline-secondary w-100">
+            Reset
+        </a>
+    </div>
+</form>
+
+
+<!-- 📋 PRODUCT TABLE -->
+<form method="post" action="{% url 'adminpanel:product_bulk_delete' %}">
+    {% csrf_token %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <button type="submit"
+                class="btn btn-danger"
+                onclick="return confirm('Delete selected products?')">
+            Delete Selected
+        </button>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table admin-table mb-0">
+                <thead>
+                    <tr>
+                        <th>
+                            <input type="checkbox" id="select-all">
+                        </th>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>
+                            <input type="checkbox"
+                                   name="product_ids"
+                                   value="{{ product.id }}"
+                                   class="product-checkbox">
+                        </td>
+                        <td>{{ product.id }}</td>
+                        <td class="fw-semibold">{{ product.name }}</td>
+                        <td>₹ {{ product.price }}</td>
+                        <td>
+                            {% if product.stock > 0 %}
+                                <span class="badge bg-success">
+                                    In Stock ({{ product.stock }})
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger">
+                                    Out of Stock (0)
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'adminpanel:product_edit' product.id %}"
+                               class="btn btn-sm btn-warning">
+                                Edit
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            No products found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</form>
+
+<!-- 📄 PAGINATION -->
+{% if products.paginator.num_pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+
+        {% if products.has_previous %}
+        <li class="page-item">
+            <a class="page-link"
+                href="?page={{ products.previous_page_number }}
+                {% if search_query %}&q={{ search_query }}{% endif %}
+                {% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                Previous
+            </a>
+        </li>
+        {% endif %}
+
+        {% for num in products.paginator.page_range %}
+        <li class="page-item {% if products.number == num %}active{% endif %}">
+            <a class="page-link"
+                href="?page={{ num }}
+                {% if search_query %}&q={{ search_query }}{% endif %}
+                {% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                {{ num }}
+            </a>
+
+        </li>
+        {% endfor %}
+
+        {% if products.has_next %}
+        <li class="page-item">
+            <a class="page-link"
+                href="?page={{ products.next_page_number }}
+                {% if search_query %}&q={{ search_query }}{% endif %}
+                {% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                Next
+            </a>
+
+        </li>
+        {% endif %}
+
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

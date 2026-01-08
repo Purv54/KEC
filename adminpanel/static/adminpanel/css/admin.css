@@ -1,0 +1,173 @@
+.card-header {
+    background-color: #f8fafc;
+}
+
+.form-label {
+    font-weight: 500;
+}
+
+input, select, textarea {
+    border-radius: 6px !important;
+}
+
+.stat-card {
+    border-radius: 14px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.card-header {
+    border-bottom: 1px solid #eee;
+}
+
+table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.badge {
+    font-size: 0.85rem;
+}
+
+/* ---------- ADMIN TABLE ---------- */
+.admin-table thead {
+    background-color: #f8f9fa;
+}
+
+.admin-table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 13px;
+    color: #6c757d;
+}
+
+.admin-table td {
+    vertical-align: middle;
+    font-size: 14px;
+}
+
+/* ---------- STATUS BADGES ---------- */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-confirmed {
+    background: #cff4fc;
+    color: #055160;
+}
+
+.status-shipped {
+    background: #e2e3ff;
+    color: #383d7c;
+}
+
+.status-delivered {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-cancelled {
+    background: #f8d7da;
+    color: #842029;
+}
+
+/* ---------- CARD IMPROVEMENTS ---------- */
+.card {
+    border-radius: 12px;
+}
+
+.card-title {
+    font-weight: 600;
+}
+
+/* ---------- BUTTON ---------- */
+.btn-outline-primary {
+    border-radius: 20px;
+}
+
+/* ---------- ADMIN TABLE ---------- */
+.admin-table thead {
+    background-color: #f8f9fa;
+}
+
+.admin-table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 13px;
+    color: #6c757d;
+}
+
+.admin-table td {
+    vertical-align: middle;
+    font-size: 14px;
+}
+
+/* ---------- STATUS BADGES ---------- */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-confirmed {
+    background: #cff4fc;
+    color: #055160;
+}
+
+.status-shipped {
+    background: #e2e3ff;
+    color: #383d7c;
+}
+
+.status-delivered {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-cancelled {
+    background: #f8d7da;
+    color: #842029;
+}
+
+/* ---------- CARD IMPROVEMENTS ---------- */
+.card {
+    border-radius: 12px;
+}
+
+.card-title {
+    font-weight: 600;
+}
+
+/* ---------- BUTTON ---------- */
+.btn-outline-primary {
+    border-radius: 20px;
+}
+
+.icon-box {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}

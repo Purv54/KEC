@@ -96,7 +96,7 @@
                                 {% if user.is_authenticated %}
                                     <button class="btn btn-sm position-absolute top-0 end-0 m-2 wishlist-btn-{{ product.id }}" 
                                             style="z-index: 10; border: none; background: rgba(255,255,255,0.8); border-radius: 50%; width: 35px; height: 35px;"
-                                            onclick="toggleWishlist({{ product.id }}, '{{ product.slug }}')">
+                                            onclick="toggleWishlist('{{ product.id }}', '{{ product.slug }}')">
                                         <i class="{% if product.id in wishlist_product_ids %}fas{% else %}far{% endif %} fa-heart text-danger"></i>
                                     </button>
                                 {% endif %}

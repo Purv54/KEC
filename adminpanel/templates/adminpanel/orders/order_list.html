@@ -1,0 +1,121 @@
+{% extends 'adminpanel/base.html' %}
+{% block title %}Orders | Admin{% endblock %}
+
+{% block content %}
+
+<h3 class="fw-bold mb-4">Orders</h3>
+
+<!-- 🔍 SEARCH & FILTER -->
+<form method="get" class="row g-2 mb-4">
+    <div class="col-md-4">
+        <input type="text"
+               name="q"
+               value="{{ search_query|default:'' }}"
+               class="form-control"
+               placeholder="Search by Order ID or Username">
+    </div>
+
+    <div class="col-md-3">
+        <select name="status" class="form-select">
+            <option value="">All Status</option>
+            {% for s in status_choices %}
+            <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>
+                {{ s }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <button class="btn btn-primary w-100">Apply</button>
+    </div>
+
+    <div class="col-md-2">
+        <a href="{% url 'adminpanel:order_list' %}" class="btn btn-outline-secondary w-100">
+            Reset
+        </a>
+    </div>
+</form>
+
+<!-- 📋 ORDERS TABLE -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table admin-table mb-0">
+            <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>User</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td><strong>#{{ order.id }}</strong></td>
+                    <td>{{ order.user.username }}</td>
+                    <td>₹ {{ order.total_amount }}</td>
+                    <td>
+                        <span class="status-badge status-{{ order.status|lower }}">
+                            {{ order.status|title }}
+                        </span>
+                    </td>
+                    <td>{{ order.created_at|date:"d M Y" }}</td>
+                    <td class="text-end">
+                        <a href="{% url 'adminpanel:order_detail' order.id %}"
+                           class="btn btn-sm btn-outline-primary">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        No orders found
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 📄 PAGINATION -->
+{% if orders.paginator.num_pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+
+        {% if orders.has_previous %}
+        <li class="page-item">
+            <a class="page-link"
+               href="?page={{ orders.previous_page_number }}&q={{ search_query }}&status={{ status_filter }}">
+               Previous
+            </a>
+        </li>
+        {% endif %}
+
+        {% for num in orders.paginator.page_range %}
+        <li class="page-item {% if orders.number == num %}active{% endif %}">
+            <a class="page-link"
+               href="?page={{ num }}&q={{ search_query }}&status={{ status_filter }}">
+               {{ num }}
+            </a>
+        </li>
+        {% endfor %}
+
+        {% if orders.has_next %}
+        <li class="page-item">
+            <a class="page-link"
+               href="?page={{ orders.next_page_number }}&q={{ search_query }}&status={{ status_filter }}">
+               Next
+            </a>
+        </li>
+        {% endif %}
+
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

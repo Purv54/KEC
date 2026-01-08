@@ -1,0 +1,92 @@
+<!-- BASIC INFO -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header fw-bold">Basic Information</div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Category</label>
+                {{ form.category }}
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Product Name</label>
+                {{ form.name }}
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Slug</label>
+                {{ form.slug }}
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Model Number</label>
+                {{ form.model_number }}
+            </div>
+            <div class="col-12">
+                <label class="form-label">Description</label>
+                {{ form.description }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PRICING & STOCK -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header fw-bold">Pricing & Stock</div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Price (₹)</label>
+                {{ form.price }}
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Stock</label>
+                {{ form.stock }}
+            </div>
+            <div class="col-md-4 mb-3 d-flex align-items-center">
+                <div class="form-check form-switch mt-4">
+                    {{ form.is_available }}
+                    <label class="form-check-label ms-2">Available</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TECHNICAL DETAILS -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header fw-bold">Technical Specifications</div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Motor Power (HP)</label>
+                {{ form.motor_power_hp }}
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Max Head (m)</label>
+                {{ form.max_head_m }}
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Max Flow (LPM)</label>
+                {{ form.max_flow_lpm }}
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Max Depth (ft)</label>
+                {{ form.max_depth_ft }}
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Phase</label>
+                {{ form.phase }}
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Usage Type</label>
+                {{ form.usage_type }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- IMAGE -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header fw-bold">Product Image</div>
+    <div class="card-body">
+        {{ form.image }}
+    </div>
+</div>

@@ -1,0 +1,18 @@
+{% extends 'adminpanel/base.html' %}
+
+{% block title %}Add Product{% endblock %}
+
+{% block content %}
+<h4 class="mb-4">➕ Add Product</h4>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    {% include 'adminpanel/products/_product_form.html' %}
+
+    <div class="text-end">
+        <button class="btn btn-success px-4">Save</button>
+        <a href="{% url 'adminpanel:product_list' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

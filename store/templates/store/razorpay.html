@@ -1,6 +1,132 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
-<button id="pay-btn">Pay Now</button>
+{% extends 'store/base.html' %}
+{% block content %}
+
+<section class="py-5 payment-section">
+  <div class="container">
+    <h2 class="fw-bold mb-4">Complete Your Payment</h2>
+
+    <div class="row g-4">
+
+      <!-- LEFT : Order Summary -->
+      <div class="col-lg-7">
+        <div class="payment-card">
+          <h5 class="mb-3">Order Summary</h5>
+
+          {% for item in items %}
+            <div class="summary-row">
+              <div>
+                <strong>{{ item.product.name }}</strong>
+                <div class="small text-muted">
+                  Qty: {{ item.quantity }}
+                </div>
+              </div>
+              <div>
+                ₹ {{ item.subtotal }}
+              </div>
+            </div>
+          {% endfor %}
+
+          <hr>
+
+          <div class="summary-total">
+            <span>Total Amount</span>
+            <span>₹ {{ amount }}</span>
+          </div>
+
+          <p class="text-muted small mt-2 mb-0">
+            Including all applicable taxes
+          </p>
+        </div>
+      </div>
+
+      <!-- RIGHT : Payment Box -->
+      <div class="col-lg-5">
+        <div class="payment-card text-center sticky-payment">
+
+          <h5 class="mb-3">Secure Payment</h5>
+
+          <div class="pay-amount">
+            ₹ {{ amount }}
+          </div>
+
+          <p class="text-muted mb-3">
+            You will be redirected to Razorpay’s secure checkout
+          </p>
+
+          <button id="pay-btn" class="btn btn-success btn-lg pay-btn">
+            <i class="bi bi-shield-lock-fill"></i>
+            Pay Now
+          </button>
+
+          <div class="secure-info mt-3">
+            <img src="https://razorpay.com/assets/razorpay-glyph.svg"
+                 alt="Razorpay"
+                 height="22">
+            <span>100% Secure Payments</span>
+          </div>
+
+          <a href="{% url 'store:checkout' %}"
+             class="btn btn-link text-decoration-none mt-3">
+            ← Back to Checkout
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Razorpay -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+var options = {
+  "key": "{{ razorpay_key }}",
+  "amount": "{{ amount|floatformat:0 }}00",
+  "currency": "INR",
+  "order_id": "{{ order_id }}",
+
+  "handler": function (response) {
+
+    fetch("/api/payment/verify/", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: JSON.stringify({
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_signature: response.razorpay_signature
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        window.location.href = data.redirect_url;
+      } else {
+        alert("Payment verification failed");
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Something went wrong");
+    });
+  }
+};
+
+var rzp = new Razorpay(options);
+document.getElementById("pay-btn").onclick = function(e){
+  rzp.open();
+  e.preventDefault();
+}
+</script>
+
+{% endblock %}
+
 
 <script>
 var options = {

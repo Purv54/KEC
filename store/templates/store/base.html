@@ -12,7 +12,12 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'store/css/style.css' %}">
 
+    {% block extra_css %}{% endblock %}
+
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     
     <!-- Heart symbol -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -22,31 +27,32 @@
 
 <!-- ✅ NAVBAR START -->
 {% load static %}
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark kec-navbar shadow-sm sticky-top">
   <div class="container">
 
-    <!-- Brand / Logo -->
-    <a class="navbar-brand d-flex align-items-center" href="{% url 'store:home' %}">
+    <!-- Logo -->
+    <a class="navbar-brand d-flex align-items-center fw-bold" href="{% url 'store:home' %}">
       <img src="{% static 'store/images/KEC_logo.jpg' %}" alt="KEC Logo"
-           style="height:58px; width:auto; object-fit:contain;" class="me-2">
+           class="kec-logo me-2">
     </a>
 
-    <!-- Toggler -->
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#kecNavbar"
-            aria-controls="kecNavbar" aria-expanded="false" aria-label="Toggle navigation">
+    <!-- Mobile toggle -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#kecNavbar">
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <!-- Collapsible content -->
     <div class="collapse navbar-collapse" id="kecNavbar">
-      <!-- Left links -->
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+      <!-- Left menu -->
+      <ul class="navbar-nav me-auto align-items-lg-center">
+
         <li class="nav-item">
-          <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'store:home' %}">Home</a>
+          <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'store:home' %}">
+            Home
+          </a>
         </li>
 
         <li class="nav-item">
-          {# mark shop active if the URL starts with /shop/ or is exactly /shop #}
           {% if request.path == '/shop/' or request.path|slice:"0:6" == '/shop/' %}
             <a class="nav-link active" href="{% url 'store:shop' %}">Shop</a>
           {% else %}
@@ -55,50 +61,67 @@
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="#">About Us</a>
+          <a class="nav-link" href="{% url 'store:pump_chatbot' %}">
+            🤖 K-BOT
+          </a>
         </li>
 
+        <!-- Search -->
+        <li class="nav-item ms-lg-3">
+          <form class="d-flex kec-search" method="get" action="{% url 'store:shop' %}">
+            <input class="form-control" type="search" name="q" placeholder="Search pumps, motors...">
+            <button class="btn btn-primary ms-2" type="submit">
+              <i class="bi bi-search"></i>
+            </button>
+          </form>
+        </li>
       </ul>
 
-      <!-- Right side: auth + cart -->
-      <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+      <!-- Right side -->
+      <ul class="navbar-nav ms-auto align-items-center">
 
         {% if user.is_authenticated %}
-          <!-- Username dropdown -->
+          <!-- User dropdown -->
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="bi bi-person-circle"></i> {{ user.username }}
+            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" data-bs-toggle="dropdown">
+              <i class="bi bi-person-circle me-1"></i> {{ user.username }}
             </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                <li><a class="dropdown-item" href="{% url 'store:profile' %}">Profile</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="{% url 'store:logout' %}">Logout</a></li>
-                </ul>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="{% url 'store:profile' %}">Profile</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="{% url 'store:logout' %}">Logout</a></li>
+            </ul>
           </li>
-          <a href="{% url 'store:wishlist' %}" class="nav-link">
+
+          <!-- Wishlist -->
+          <li class="nav-item ms-2">
+            <a href="{% url 'store:wishlist' %}" class="nav-link">
               <i class="far fa-heart"></i>
-              {% if user.is_authenticated %}
-                  (<span id="wishlist-count">{{ wishlist_count }}</span>)
-              {% endif %}
-          </a>
+              (<span id="wishlist-count">{{ wishlist_count }}</span>)
+            </a>
+          </li>
+
         {% else %}
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'store:login' %}">Login</a>
+            <a class="btn btn-outline-light btn-sm ms-2" href="{% url 'store:login' %}">
+              Login
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'store:signup' %}">Sign Up</a>
+            <a class="btn btn-warning btn-sm ms-2 text-dark fw-semibold" href="{% url 'store:signup' %}">
+              Sign Up
+            </a>
           </li>
         {% endif %}
 
-        <!-- Cart icon with badge -->
-        <li class="nav-item ms-2">
-          <a class="nav-link position-relative" href="{% url 'store:cart_detail' %}" title="View cart">
+        <!-- Cart -->
+        <li class="nav-item ms-3">
+          <a class="nav-link position-relative" href="{% url 'store:cart_detail' %}">
             <i class="bi bi-cart3 fs-5"></i>
             {% with cart=request.session.cart %}
               {% if cart %}
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">
                   {{ cart|length }}
-                  <span class="visually-hidden">items in cart</span>
                 </span>
               {% endif %}
             {% endwith %}
@@ -109,7 +132,6 @@
     </div>
   </div>
 </nav>
-
 
 <!-- ✅ NAVBAR END -->
 
@@ -126,10 +148,63 @@
 </div>
 
 
-<!-- ✅ FOOTER -->
-<footer class="bg-dark text-white text-center p-3 mt-5">
-    <p class="mb-0">© 2025 KEC Submersible Motor & Pump | All Rights Reserved</p>
+<!-- FOOTER -->
+<footer class="bg-dark text-light mt-5">
+    <div class="container py-4">
+        <div class="row align-items-start">
+
+            <!-- Company Info (Left) -->
+            <div class="col-md-6 mb-3">
+                <h5 class="text-uppercase">KEC Submersible Pumps</h5>
+                <p class="small">
+                    Reliable submersible motors & pump solutions for agriculture,
+                    domestic and industrial applications.
+                </p>
+            </div>
+
+            <!-- Contact Details (Right) -->
+            <div class="col-md-6 mb-3 text-md-end">
+                <h5 class="text-uppercase">Contact Us</h5>
+
+                <p class="mb-1">
+                    <i class="bi bi-geo-alt-fill"></i>
+                    <a href="https://www.google.com/maps/search/?api=1&query=Rajkot,+Gujarat,+India"
+                      target="_blank"
+                      class="text-light text-decoration-none">
+                        Rajkot, Gujarat, India
+                    </a>
+                </p>
+
+
+                <p class="mb-1">
+                    <i class="bi bi-telephone-fill"></i>
+                    +91 63559 67177
+                </p>
+
+                <p class="mb-1">
+                    <i class="bi bi-envelope-fill"></i>
+                    <a href="https://mail.google.com/mail/?view=cm&fs=1&to=ranpariyapurv@gmail.com"
+                      target="_blank"
+                      class="text-light text-decoration-none">
+                        ranpariyapurv@gmail.com
+                    </a>
+
+                </p>
+            </div>
+
+        </div>
+
+        <hr class="border-secondary">
+
+        <!-- Copyright -->
+        <div class="text-center small">
+            © {{ year|default:2025 }} KEC Pumps. All Rights Reserved.
+        </div>
+    </div>
 </footer>
+
+
+
 
 
 <!-- Bootstrap JS -->

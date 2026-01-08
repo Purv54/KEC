@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'store',
     'rest_framework',
+    'adminpanel',
 
 ]
 
@@ -151,3 +152,13 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'ranpariyapurv@gmail.com'
 EMAIL_HOST_PASSWORD = 'trbtrjkmexqdknxk'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
