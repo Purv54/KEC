@@ -4,6 +4,10 @@
 
 {% block content %}
 
+{{ category_labels|json_script:"category-labels" }}
+{{ category_revenues|json_script:"category-revenues" }}
+
+
 <!-- PAGE HEADER -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
@@ -61,19 +65,16 @@
     </div>
 
     <!-- REVENUE (PLACEHOLDER) -->
-    <div class="col-md-3">
-        <div class="card stat-card shadow-sm border-0">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <p class="text-muted mb-1 text-uppercase small">Revenue</p>
-                    <h2 class="fw-bold mb-0">₹ —</h2>
-                </div>
-                <div class="icon-box bg-dark text-white">
-                    <i class="bi bi-currency-rupee"></i>
-                </div>
-            </div>
+    <div class="col-md-9">
+    <div class="card shadow-sm border-0">
+        <div class="card-header fw-bold">
+            Sales Analysis (All orders)
+        </div>
+        <div class="card-body">
+            <canvas id="categorySalesChart" height="120"></canvas>
         </div>
     </div>
+</div>
 
 </div>
 
@@ -106,7 +107,7 @@
                     <td>
                         <span class="badge 
                             {% if order.status|lower == 'pending' %} bg-warning
-                            {% elif order.status|lower == 'delivered' %} bg-success
+                            {% elif order.status|lower == 'completed' %} bg-success
                             {% elif order.status|lower == 'cancelled' %} bg-danger
                             {% else %} bg-secondary {% endif %}
                         ">
@@ -126,5 +127,44 @@
         </table>
     </div>
 </div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const labelsEl = document.getElementById("category-labels");
+    const revenuesEl = document.getElementById("category-revenues");
+
+    if (!labelsEl || !revenuesEl) {
+        console.error("Category sales data missing");
+        return;
+    }
+
+    const labels = JSON.parse(labelsEl.textContent);
+    const revenues = JSON.parse(revenuesEl.textContent);
+
+    const ctx = document.getElementById("categorySalesChart");
+    if (!ctx) return;
+
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Revenue (₹)",
+                data: revenues,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+});
+</script>
 
 {% endblock %}

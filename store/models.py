@@ -60,9 +60,9 @@ class Product(models.Model):
 class Order(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
-        ('processing', 'Processing'),
         ('shipped', 'Shipped'),
-        ('completed', 'Completed'),
+        ('delivered', 'Delivered'),
+        ('confirmed', 'Confirmed'),
         ('cancelled', 'Cancelled'),
     )
 

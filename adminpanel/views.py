@@ -12,6 +12,12 @@ from .forms import ProductForm
 from django.core.paginator import Paginator
 from django.db.models import Q
 
+from django.db.models import Sum
+from django.db.models import F
+from django.db.models.functions import TruncDate
+from django.utils import timezone
+from datetime import timedelta
+from store.models import Order, OrderItem
 
 
 def admin_login(request):
@@ -40,43 +46,63 @@ def admin_logout(request):
 def is_admin(user):
     return user.is_authenticated and user.is_staff
 
-@login_required(login_url='adminpanel:login')
-@user_passes_test(is_admin)
-def dashboard(request):
-    return render(request, 'adminpanel/dashboard.html')
-
 
 @login_required(login_url='adminpanel:login')
 @user_passes_test(is_admin)
 def dashboard(request):
-    total_products = Product.objects.count()
-    total_users = User.objects.count()
 
-    context = {
-        'total_products': total_products,
-        'total_users': total_users,
-    }
-
-    return render(request, 'adminpanel/dashboard.html', context)
-
-@login_required(login_url='adminpanel:login')
-@user_passes_test(is_admin)
-def dashboard(request):
+    # 🔹 BASIC STATS
     total_products = Product.objects.count()
     total_users = User.objects.count()
     total_orders = Order.objects.count()
 
     recent_orders = Order.objects.order_by('-created_at')[:5]
 
+    # 🔹 TOTAL REVENUE (ALL ORDERS)
+    total_revenue = sum(order.total_amount for order in Order.objects.all())
+
+    # 🔹 CATEGORY-WISE SALES ANALYSIS (DELIVERED ORDERS)
+    category_sales = (
+        OrderItem.objects
+        .filter(order__status='delivered')
+        .values(
+            'product__category__name',
+            'product__category'
+        )
+        .annotate(
+            revenue=Sum(F('price') * F('quantity'))
+        )
+        .order_by('-revenue')
+    )
+
+    category_labels = []
+    category_revenues = []
+
+    for item in category_sales:
+        # Works for BOTH FK & CharField category
+        category_name = (
+            item.get('product__category__name')
+            or item.get('product__category')
+            or 'Unknown'
+        )
+
+        category_labels.append(category_name)
+        category_revenues.append(float(item['revenue'] or 0))
+
+    # 🔹 FINAL CONTEXT
     context = {
         'total_products': total_products,
         'total_users': total_users,
         'total_orders': total_orders,
         'recent_orders': recent_orders,
+        'total_revenue': total_revenue,
+
+        # Category-wise chart data
+        'category_labels': category_labels,
+        'category_revenues': category_revenues,
     }
 
     return render(request, 'adminpanel/dashboard.html', context)
-
 
 @login_required(login_url='adminpanel:login')
 @user_passes_test(is_admin)
