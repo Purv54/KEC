@@ -17,6 +17,7 @@ urlpatterns = [
     path('products/bulk-delete/', views.product_bulk_delete, name='product_bulk_delete'),
 
     path('users/', views.user_list, name='user_list'),
+    path('users/<int:id>/', views.user_detail, name='user_detail'),
 
 
 

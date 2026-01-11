@@ -9,11 +9,10 @@ from django.db.models import Count
 
 from .forms import ProductForm
 
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 
-from django.db.models import Sum
-from django.db.models import F
+from django.db.models import Sum,Count,F 
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from datetime import timedelta
@@ -186,40 +185,7 @@ def product_delete(request, id):
 @login_required(login_url='adminpanel:login')
 @user_passes_test(is_admin)
 def order_list(request):
-    orders = Order.objects.all().order_by('-created_at')
-
-    # 🔍 SEARCH
-    search_query = request.GET.get('q')
-    if search_query:
-        orders = orders.filter(
-            Q(id__icontains=search_query) |
-            Q(user__username__icontains=search_query)
-        )
-
-    # 🎯 FILTER BY STATUS
-    status_filter = request.GET.get('status')
-    if status_filter:
-        orders = orders.filter(status__iexact=status_filter)
-
-    # 📄 PAGINATION
-    paginator = Paginator(orders, 10)  # 10 orders per page
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    context = {
-        'orders': page_obj,
-        'search_query': search_query,
-        'status_filter': status_filter,
-        'status_choices': ['Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'],
-    }
-
-    return render(request, 'adminpanel/orders/order_list.html', context)
-
-@login_required(login_url='adminpanel:login')
-@user_passes_test(is_admin)
-def order_detail(request, id):
-    order = get_object_or_404(Order, id=id)
-    items = OrderItem.objects.filter(order=order)
+    orders_qs = Order.objects.select_related('user').order_by('-created_at')
 
     status_choices = [
         'Pending',
@@ -229,11 +195,67 @@ def order_detail(request, id):
         'Cancelled',
     ]
 
+    # 🔍 SEARCH
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        orders_qs = orders_qs.filter(
+            Q(id__icontains=search_query) |
+            Q(user__username__icontains=search_query)
+        )
+
+    # 🎯 STATUS FILTER
+    status_filter = request.GET.get('status', '').strip()
+    if status_filter:
+        orders_qs = orders_qs.filter(status__iexact=status_filter)
+
+    # 📄 PAGINATION (ALWAYS LAST)
+    paginator = Paginator(orders_qs, 10)  # 10 orders per page
+    page_number = request.GET.get('page')
+
+    try:
+        orders = paginator.page(page_number)
+    except PageNotAnInteger:
+        orders = paginator.page(1)
+    except EmptyPage:
+        orders = paginator.page(paginator.num_pages)
+
+    return render(request, 'adminpanel/orders/order_list.html', {
+        'orders': orders,
+        'status_choices': status_choices,
+        'search_query': search_query,
+        'status_filter': status_filter,
+    })
+
+
+@login_required(login_url='adminpanel:login')
+@user_passes_test(is_admin)
+def order_detail(request, id):
+    order = get_object_or_404(Order, id=id)
+    items = OrderItem.objects.select_related('product').filter(order=order)
+
+    status_choices = [
+        'Pending',
+        'Confirmed',
+        'Shipped',
+        'Delivered',
+        'Cancelled',
+    ]
+
+    # 🔄 UPDATE STATUS
     if request.method == 'POST':
         new_status = request.POST.get('status')
+
         if new_status in status_choices:
-            order.status = new_status
-            order.save()
+            if order.status != new_status:
+                order.status = new_status
+                order.save()
+                messages.success(
+                    request,
+                    f"Order #{order.id} status updated to {new_status}"
+                )
+        else:
+            messages.error(request, "Invalid status selected")
+
         return redirect('adminpanel:order_detail', id=order.id)
 
     return render(request, 'adminpanel/orders/order_detail.html', {
@@ -276,3 +298,29 @@ def user_list(request):
     }
 
     return render(request, 'adminpanel/users/user_list.html', context)
+
+
+@login_required(login_url='adminpanel:login')
+@user_passes_test(is_admin)
+def user_detail(request, id):
+    user = get_object_or_404(User, id=id)
+
+    orders = Order.objects.filter(user=user).order_by('-created_at')
+
+    total_orders = orders.count()
+
+    # ✅ Calculate total spent from OrderItem
+    total_spent = OrderItem.objects.filter(
+        order__user=user
+    ).aggregate(
+        total=Sum(F('price') * F('quantity'))
+    )['total'] or 0
+
+    context = {
+        'user_obj': user,
+        'orders': orders,
+        'total_orders': total_orders,
+        'total_spent': total_spent,
+    }
+
+    return render(request, 'adminpanel/users/user_detail.html', context)
