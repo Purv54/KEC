@@ -50,17 +50,17 @@ def is_admin(user):
 @user_passes_test(is_admin)
 def dashboard(request):
 
-    # 🔹 BASIC STATS
+    # BASIC STATS
     total_products = Product.objects.count()
     total_users = User.objects.count()
     total_orders = Order.objects.count()
 
     recent_orders = Order.objects.order_by('-created_at')[:5]
 
-    # 🔹 TOTAL REVENUE (ALL ORDERS)
+    # TOTAL REVENUE (ALL ORDERS)
     total_revenue = sum(order.total_amount for order in Order.objects.all())
 
-    # 🔹 CATEGORY-WISE SALES ANALYSIS (DELIVERED ORDERS)
+    #  CATEGORY-WISE SALES ANALYSIS (DELIVERED ORDERS)
     category_sales = (
         OrderItem.objects
         .filter(order__status='delivered')
@@ -88,7 +88,7 @@ def dashboard(request):
         category_labels.append(category_name)
         category_revenues.append(float(item['revenue'] or 0))
 
-    # 🔹 FINAL CONTEXT
+    #  FINAL CONTEXT
     context = {
         'total_products': total_products,
         'total_users': total_users,
@@ -108,12 +108,12 @@ def dashboard(request):
 def product_list(request):
     products = Product.objects.all()
 
-    # 🔍 SEARCH
+    #  SEARCH
     search_query = request.GET.get('q', '').strip()
     if search_query:
         products = products.filter(name__icontains=search_query)
 
-    # 🔃 SORTING
+    #  SORTING
     sort_by = request.GET.get('sort', '')
 
     if sort_by == 'price_asc':
@@ -127,7 +127,7 @@ def product_list(request):
     else:
         products = products.order_by('-id')  # default: newest first
 
-    # 📄 PAGINATION
+    #  PAGINATION
     paginator = Paginator(products, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -195,7 +195,7 @@ def order_list(request):
         'Cancelled',
     ]
 
-    # 🔍 SEARCH
+    #  SEARCH
     search_query = request.GET.get('q', '').strip()
     if search_query:
         orders_qs = orders_qs.filter(
@@ -203,12 +203,12 @@ def order_list(request):
             Q(user__username__icontains=search_query)
         )
 
-    # 🎯 STATUS FILTER
+    # STATUS FILTER
     status_filter = request.GET.get('status', '').strip()
     if status_filter:
         orders_qs = orders_qs.filter(status__iexact=status_filter)
 
-    # 📄 PAGINATION (ALWAYS LAST)
+    #  PAGINATION (ALWAYS LAST)
     paginator = Paginator(orders_qs, 10)  # 10 orders per page
     page_number = request.GET.get('page')
 
@@ -241,7 +241,7 @@ def order_detail(request, id):
         'Cancelled',
     ]
 
-    # 🔄 UPDATE STATUS
+    # UPDATE STATUS
     if request.method == 'POST':
         new_status = request.POST.get('status')
 
@@ -280,14 +280,14 @@ def user_list(request):
         total_orders=Count('order')
     ).order_by('-date_joined')
 
-    # 🔍 SEARCH
+    #  SEARCH
     search_query = request.GET.get('q', '').strip()
     if search_query:
         users = users.filter(
             username__icontains=search_query
         )
 
-    # 📄 PAGINATION
+    #  PAGINATION
     paginator = Paginator(users, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -309,7 +309,7 @@ def user_detail(request, id):
 
     total_orders = orders.count()
 
-    # ✅ Calculate total spent from OrderItem
+    # Calculate total spent from OrderItem
     total_spent = OrderItem.objects.filter(
         order__user=user
     ).aggregate(

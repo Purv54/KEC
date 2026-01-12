@@ -47,12 +47,12 @@ def shop(request):
     categories = Category.objects.all()
     products = Product.objects.filter(is_available=True)
     
-    # Category filter (?category=slug)
+    # Category filter 
     category_slug = request.GET.get('category')
     if category_slug:
         products = products.filter(category__slug=category_slug)
     
-    # Search filter (?q=...)
+    # Search filter 
     query = request.GET.get('q')
     if query:
         products = products.filter(
@@ -92,7 +92,7 @@ def product_detail(request, slug):
         'is_in_wishlist': is_in_wishlist,
     })
 
-# ---------- CART HELPERS ----------
+# CART HELPERS 
 
 def _get_cart(request):
     """Return cart dict from session: {product_id: quantity}"""
@@ -105,7 +105,7 @@ def _save_cart(request, cart):
     request.session.modified = True
 
 
-# ---------- CART VIEWS ----------
+#  CART VIEWS
 @login_required
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id, is_available=True)
@@ -119,7 +119,7 @@ def add_to_cart(request, product_id):
     current_qty = cart.get(pid, 0)
     new_qty = current_qty + quantity
 
-    # Optional: respect stock
+
     if product.stock and new_qty > product.stock:
         new_qty = product.stock
 
@@ -128,7 +128,7 @@ def add_to_cart(request, product_id):
 
     messages.success(request, f"Added {product.name} (x{quantity}) to cart.")
 
-    # redirect back to previous page if 'next' is given
+    
     next_url = request.POST.get('next')
     if next_url:
         return redirect(next_url)
@@ -190,7 +190,7 @@ def update_cart(request, product_id):
         quantity = 1
 
     if quantity < 1:
-        # if user sets 0 or less, remove the item
+        
         del cart[pid]
         messages.info(request, f"{product.name} removed from cart.")
     else:
@@ -212,7 +212,6 @@ def checkout(request):
         messages.error(request, "Your cart is empty. Add some products before checkout.")
         return redirect('store:shop')
 
-    # Build items + total for summary
     items = []
     total = 0
     for pid, qty in cart.items():
@@ -232,12 +231,11 @@ def checkout(request):
 
     if request.method == 'POST':
         payment_method = request.POST.get('payment_method', 'cod')
-        # first check if a saved address id was posted
+    
         logger.debug("Checkout POST data: %s", request.POST.dict())
         address_id = request.POST.get('address_id')
         form = CheckoutForm(request.POST)
 
-        # If user selected a saved address and it's valid, we'll use it
         selected_address = None
         if address_id and request.user.is_authenticated:
             try:
@@ -271,7 +269,7 @@ def checkout(request):
                     notes=''
                 )
 
-                # create order items
+                
                 for item in items:
                     OrderItem.objects.create(
                         order=order,
@@ -279,13 +277,13 @@ def checkout(request):
                         quantity=item['quantity'],
                         price=item['product'].price
                     )
-                    # reduce stock
+                    
                     p = item['product']
                     if p.stock is not None:
                         p.stock = max(0, p.stock - item['quantity'])
                         p.save()
 
-                # clear cart
+                
                 request.session['cart'] = {}
                 request.session.modified = True
 
@@ -293,7 +291,7 @@ def checkout(request):
                 return redirect('store:order_success', order_id=order.id)
 
         else:
-            # No saved address used — validate normal checkout form
+           
             if form.is_valid():
                 if payment_method == 'online':
                     request.session['checkout_data'] = request.POST.dict()

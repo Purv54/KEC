@@ -29,7 +29,7 @@ class Product(models.Model):
     stock = models.PositiveIntegerField(default=0)
     is_available = models.BooleanField(default=True)
 
-    # 🔹 New OPTIONAL fields for recommendation
+    #  New OPTIONAL fields for recommendation
     motor_power_hp = models.DecimalField(
         max_digits=4, decimal_places=2, null=True, blank=True
     )
@@ -80,10 +80,10 @@ class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     full_name = models.CharField(max_length=200)
     email = models.EmailField()
-    phone = models.CharField(max_length=15)
+    phone = models.CharField(max_length=10)
     address = models.TextField()
     city = models.CharField(max_length=100)
-    pincode = models.CharField(max_length=10)
+    pincode = models.CharField(max_length=6)
     notes = models.TextField(blank=True, null=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -136,7 +136,7 @@ class Address(models.Model):
 
 class Wishlist(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='wishlist')
-    product = models.ForeignKey('Product', on_delete=models.CASCADE)  # Replace 'Product' with your actual product model name
+    product = models.ForeignKey('Product', on_delete=models.CASCADE)  
     added_on = models.DateTimeField(auto_now_add=True)
     
     class Meta:

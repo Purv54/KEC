@@ -18,7 +18,7 @@ def generate_receipt_pdf(order):
     p = canvas.Canvas(buffer, pagesize=A4)
 
     width, height = A4
-    y = height - 40   # ✅ MUST be int
+    y = height - 40   
 
     # Title
     p.setFont("Helvetica-Bold", 16)
@@ -121,7 +121,7 @@ KEC Pumps
 
     email.attach_alternative(html_content, "text/html")
 
-    # 📎 Attach PDF
+    #  Attach PDF
     email.attach(
         filename=f"KEC_Receipt_Order_{order.id}.pdf",
         content=pdf_bytes,

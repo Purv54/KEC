@@ -41,7 +41,7 @@ class SignUpForm(UserCreationForm):
         self.fields['password1'].widget.attrs.update({'class': 'form-control'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
 
-    # 🔴 ADD THIS METHOD ONLY
+    # ADD THIS METHOD ONLY
     def clean_email(self):
         email = self.cleaned_data.get('email').lower()
         if User.objects.filter(email=email).exists():
