@@ -209,7 +209,7 @@ def order_list(request):
         orders_qs = orders_qs.filter(status__iexact=status_filter)
 
     #  PAGINATION (ALWAYS LAST)
-    paginator = Paginator(orders_qs, 10)  # 10 orders per page
+    paginator = Paginator(orders_qs, 10)  
     page_number = request.GET.get('page')
 
     try:
