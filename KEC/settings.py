@@ -28,7 +28,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 
 
-ALLOWED_HOSTS = ["yourusername.pythonanywhere.com"]
+ALLOWED_HOSTS = ["purv.pythonanywhere.com"]
 
 
 # Application definition
@@ -150,7 +150,7 @@ RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET")
 CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOWED_ORIGINS = [
-    "https://yourusername.pythonanywhere.com",
+    "https://purv.pythonanywhere.com",
 ]
 
 
