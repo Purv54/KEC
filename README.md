@@ -30,18 +30,6 @@ The goal of this project was to understand how a complete web application is des
 - **Email:** SMTP (Gmail)  
 - **Deployment:** PythonAnywhere  
 
----
-##  Project Structure
-KEC/
-│── adminpanel/
-│── store/
-│── templates/
-│── static/
-│── KEC/
-│── manage.py
-│── requirements.txt
-│── README.md
-
 
 ##  Installation & Setup (Local)
 
