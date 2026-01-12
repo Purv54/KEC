@@ -22,11 +22,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-i_p*$c(0fqczs!w7pg83_sfo%z7@d3bxj-qrxd!s^obezo%k&%'
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = []
+
+ALLOWED_HOSTS = ["yourusername.pythonanywhere.com"]
 
 
 # Application definition
@@ -120,7 +122,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 
 STATICFILES_DIRS = [
     BASE_DIR / "store" / "static",
@@ -140,17 +144,23 @@ LOGIN_URL = 'store:login'
 
 #razorpay ID and secrect KEY
 
-RAZORPAY_KEY_ID = "rzp_test_RuL8Fcb3RvCFS2"
-RAZORPAY_KEY_SECRET = "lWfTDbmehwLgHccxWSgIyUpH"
-CORS_ALLOW_ALL_ORIGINS = True
+RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET")
+
+CORS_ALLOW_ALL_ORIGINS = False
+
+CORS_ALLOWED_ORIGINS = [
+    "https://yourusername.pythonanywhere.com",
+]
+
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'ranpariyapurv@gmail.com'
-EMAIL_HOST_PASSWORD = 'trbtrjkmexqdknxk'
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
